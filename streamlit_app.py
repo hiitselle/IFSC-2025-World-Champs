@@ -50,11 +50,11 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.header("**Laval Stats**")
+st.header("**Seoul World Champs 2025**")
 
 with st.sidebar:
     genderSel = st.selectbox(
-        "Select gender",
+        "Select Round",
         ("Male Boulder Semis", "Female Boulder Semis" ,"Male Boulder Final" ,"Female Boulder Finals" ,"Male Lead Semis", "Female Lead Semis" ,"Male Lead Final" ,"Female Lead Finals")
     )
 
