@@ -5,7 +5,7 @@ import mdurl
 import streamlit as st
 import pandas as pd
 from  streamlit_autorefresh import st_autorefresh
-st.set_page_config(page_title="Olympic Selection Stats", layout="wide")
+st.set_page_config(page_title="IFSC 2025 World Champs", layout="wide")
 st_autorefresh(interval=2000)#in ms
 
 
@@ -55,20 +55,32 @@ st.header("**Laval Stats**")
 with st.sidebar:
     genderSel = st.selectbox(
         "Select gender",
-        ("Male Semis", "Female Semis" ,"Male Final" ,"Female Finals")
+        ("Male Boulder Semis", "Female Boulder Semis" ,"Male Boulder Final" ,"Female Boulder Finals" ,"Male Lead Semis", "Female Lead Semis" ,"Male Lead Final" ,"Female Lead Finals")
     )
 
 #@st.cache_data(ttl=60)
 def load_data(sheets_url):
     return pd.read_csv(sheets_url, dtype=str)
 
-if(genderSel=="Male Semis"):
+if(genderSel=="Male Boulder Semis"):
     df = load_data("https://docs.google.com/spreadsheets/d/12i_7HsoRs74S0FtzN04Uu1WZeToU6AoyOidHAL6WcGE/export?format=csv&gid=1473230761")
  
-elif(genderSel=="Female Semis"):
+elif(genderSel=="Female Boulder Semis"):
     df = load_data("https://docs.google.com/spreadsheets/d/12i_7HsoRs74S0FtzN04Uu1WZeToU6AoyOidHAL6WcGE/export?format=csv&gid=1802658245")
  
-elif(genderSel=="Male Final"):
+elif(genderSel=="Male Boulder Final"):
+    df = load_data("https://docs.google.com/spreadsheets/d/12i_7HsoRs74S0FtzN04Uu1WZeToU6AoyOidHAL6WcGE/export?format=csv&gid=28593922")    
+
+elif(genderSel=="Female Boulder Final"):
+    df = load_data("https://docs.google.com/spreadsheets/d/12i_7HsoRs74S0FtzN04Uu1WZeToU6AoyOidHAL6WcGE/export?format=csv&gid=1802658245")
+ 
+elif(genderSel=="Male Lead Semis"):
+    df = load_data("https://docs.google.com/spreadsheets/d/12i_7HsoRs74S0FtzN04Uu1WZeToU6AoyOidHAL6WcGE/export?format=csv&gid=28593922")    
+
+elif(genderSel=="Female Lead Semis"):
+    df = load_data("https://docs.google.com/spreadsheets/d/12i_7HsoRs74S0FtzN04Uu1WZeToU6AoyOidHAL6WcGE/export?format=csv&gid=1802658245")
+ 
+elif(genderSel=="Male Lead Final"):
     df = load_data("https://docs.google.com/spreadsheets/d/12i_7HsoRs74S0FtzN04Uu1WZeToU6AoyOidHAL6WcGE/export?format=csv&gid=28593922")    
     
 else:
