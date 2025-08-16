@@ -63,7 +63,7 @@ def load_data(sheets_url):
     return pd.read_csv(sheets_url, dtype=str)
 
 if(genderSel=="Male Boulder Semis"):
-    df = load_data(https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/edit?gid=1842627779)
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/edit?gid=1842627779#gid=1842627779")
  
 elif(genderSel=="Female Boulder Semis"):
     df = load_data("https://docs.google.com/spreadsheets/d/12i_7HsoRs74S0FtzN04Uu1WZeToU6AoyOidHAL6WcGE/export?format=csv&gid=1802658245")
