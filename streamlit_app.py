@@ -90,7 +90,25 @@ df = df.astype(str)
 for x in range(len(df)):
     with st.expander(df['Name'].iloc[x]):
         generateInfo(x)
-     
+
+def generateInfo(x):
+    row = df.iloc[x]
+
+    st.markdown(
+        f"""
+        <div style="background-color:#f9f9f9; border-radius:15px; padding:20px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1);">
+            <h2 style="margin-bottom:5px;">{int(row.get('Actual Ranking', 0))}. {row.get('Name','')}</h2>
+            <p><b>Total Score:</b> {row.get('TotalScore','')}</p>
+            <p><b>Points to 1st:</b> {row.get('Points to 1st','')}</p>
+            <p><b>Points to 2nd:</b> {row.get('Points to 2nd','')}</p>
+            <p><b>Points to 3rd:</b> {row.get('Points to 3rd','')}</p>
+            <p><b>Min Needed:</b> {row.get('Min needed','')}</p>
+            <p><b>Min Hold to Qualify:</b> {row.get('Min Hold to Qualify','')}</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 def generateInfo(idx):
     row = df.iloc[idx]
     st.markdown(f"""
