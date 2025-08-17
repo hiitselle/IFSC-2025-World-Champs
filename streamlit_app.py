@@ -112,7 +112,7 @@ def generateInfo(x):
         badge = "🔴 Not Qualified"
 
 st.markdown(
-    """
+    """,
     <div style="background-color:#f9f9f9; border-radius:15px; padding:20px;">
         <h3>Mens Boulder</h3>
         <ul>
