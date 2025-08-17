@@ -90,22 +90,33 @@ df = df.astype(str)
 # --- Athlete selector with ranking ---
 st.title("🏆 Seoul World Champs 2025")
 
-df = df.sort_values(by="Actual Ranking")  # ensure ranked order
+# Convert ranking to numeric safely
+df["Actual Ranking"] = pd.to_numeric(df["Actual Ranking"], errors="coerce")
+
+# Drop rows with no ranking
+df = df.dropna(subset=["Actual Ranking"])
+
+# Sort properly
+df = df.sort_values(by="Actual Ranking")
+
+# Build display list safely
 athletes_display = [
     f"{int(row['Actual Ranking'])}. {row['Name']}"
     for _, row in df.iterrows()
+    if pd.notna(row["Actual Ranking"]) and str(row["Name"]).strip() != ""
 ]
+
 selected_display = st.selectbox("Select an athlete", athletes_display)
 
 # Extract just the athlete name from the dropdown choice
-selected_athlete = selected_display.split(". ", 1)[1]
+if selected_display:
+    selected_athlete = selected_display.split(". ", 1)[1]
 
-# --- Athlete Card ---
-if selected_athlete:
+    # --- Athlete Card ---
     row = df[df["Name"] == selected_athlete].iloc[0]
 
     # Qualification Badge
-    qualified = str(row["Qualified"]).strip().lower()
+    qualified = str(row.get("Qualified", "")).strip().lower()
     if qualified in ["yes", "qualified", "true", "1"]:
         badge = "🟢 Qualified"
     else:
@@ -119,23 +130,22 @@ if selected_athlete:
             padding:20px;
             box-shadow:0 4px 10px rgba(0,0,0,0.1);
         ">
-            <h2 style="margin-bottom:5px;">{row['Actual Ranking']}. {selected_athlete}</h2>
+            <h2 style="margin-bottom:5px;">{int(row['Actual Ranking'])}. {selected_athlete}</h2>
             <p style="font-size:18px; font-weight:bold;">{badge}</p>
 
             <hr style="margin:10px 0;">
 
-            <p><b>Total Score:</b> {row['TotalScore']}</p>
-            <p><b>Points to 1st:</b> {row['Points to 1st']} | <b>Hold:</b> {row['Hold for Current 1st']}</p>
-            <p><b>Points to 2nd:</b> {row['Points to 2nd']} | <b>Hold:</b> {row['Hold for Current 2nd']}</p>
-            <p><b>Points to 3rd:</b> {row['Points to 3rd']} | <b>Hold:</b> {row['Hold for Current 3rd']}</p>
+            <p><b>Total Score:</b> {row.get('TotalScore','-')}</p>
+            <p><b>Points to 1st:</b> {row.get('Points to 1st','-')} | <b>Hold:</b> {row.get('Hold for Current 1st','-')}</p>
+            <p><b>Points to 2nd:</b> {row.get('Points to 2nd','-')} | <b>Hold:</b> {row.get('Hold for Current 2nd','-')}</p>
+            <p><b>Points to 3rd:</b> {row.get('Points to 3rd','-')} | <b>Hold:</b> {row.get('Hold for Current 3rd','-')}</p>
             
-            <p><b>Actual Ranking:</b> #{row['Actual Ranking']}</p>
-            <p><b>Min Needed:</b> {row['min needed']} | <b>Min Hold to Qualify:</b> {row['Min Hold to Qualify']}</p>
+            <p><b>Actual Ranking:</b> #{int(row['Actual Ranking'])}</p>
+            <p><b>Min Needed:</b> {row.get('min needed','-')} | <b>Min Hold to Qualify:</b> {row.get('Min Hold to Qualify','-')}</p>
         </div>
         """,
         unsafe_allow_html=True
     )
-
                  
 for x in range(len(df)):
     with st.expander(df['Name'].iloc[x]):
