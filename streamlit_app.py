@@ -24,6 +24,28 @@ header[data-testid="stHeader"] {
 # --- Sidebar Leaderboard (PUT THIS AFTER YOU LOAD df) ---
 st.sidebar.title("📊 Current Leaderboard")
 
+# Load data from Google Sheets
+@st.cache_data(ttl=600)
+def load_data(sheets_url):
+    return pd.read_csv(sheets_url)
+
+if genderSelect == "Male Boulder Semis":
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=1631360020")
+elif genderSelect == "Female Boulder Semis":
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=1785852811")
+elif genderSelect == "Male Boulder Final":
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=935198785")
+elif genderSelect == "Female Boulder Final":
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=769323139")
+elif genderSelect == "Male Lead Semis":
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=1842627779")
+elif genderSelect == "Female Lead Semis":
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=137564533")
+elif genderSelect == "Male Lead Final":
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=0")
+elif genderSelect == "Female Lead Final":
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=1947247931")
+
 leaderboard = df.sort_values(by="Actual Ranking")[
     ["Actual Ranking", "Name", "TotalScore"]
 ]
@@ -62,27 +84,6 @@ with st.sidebar:
         ]
     )
 
-# Load data from Google Sheets
-@st.cache_data(ttl=600)
-def load_data(sheets_url):
-    return pd.read_csv(sheets_url)
-
-if genderSelect == "Male Boulder Semis":
-    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=1631360020")
-elif genderSelect == "Female Boulder Semis":
-    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=1785852811")
-elif genderSelect == "Male Boulder Final":
-    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=935198785")
-elif genderSelect == "Female Boulder Final":
-    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=769323139")
-elif genderSelect == "Male Lead Semis":
-    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=1842627779")
-elif genderSelect == "Female Lead Semis":
-    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=137564533")
-elif genderSelect == "Male Lead Final":
-    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=0")
-elif genderSelect == "Female Lead Final":
-    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=1947247931")
 
 # Ensure dataframe loaded
 if df is None or df.empty:
