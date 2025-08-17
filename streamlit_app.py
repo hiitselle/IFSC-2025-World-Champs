@@ -42,21 +42,21 @@ def load_data(sheets_url):
     return pd.read_csv(sheets_url)
 
 if genderSelect == "Male Boulder Semis":
-    df = load_data("https://docs.google.com/spreadsheets/d/1MYp0ek0L1XlZfDfcCWhgeMT97m2iJpmj7fk4Mj/export?format=csv&id=1d31J02E07")
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=1631360020")
 elif genderSelect == "Female Boulder Semis":
-    df = load_data("https://docs.google.com/spreadsheets/d/1MYp0ek0L1XlZfDfcCWhgeMT97m2iJpmj7fk4Mj/export?format=csv&id=1703E3211")
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=1785852811")
 elif genderSelect == "Male Boulder Final":
-    df = load_data("https://docs.google.com/spreadsheets/d/1MYp0ek0L1XlZfDfcCWhgeMT97m2iJpmj7fk4Mj/export?format=csv&id=1591B5873")
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=935198785")
 elif genderSelect == "Female Boulder Final":
-    df = load_data("https://docs.google.com/spreadsheets/d/1MYp0ek0L1XlZfDfcCWhgeMT97m2iJpmj7fk4Mj/export?format=csv&id=1870E1337")
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=769323139")
 elif genderSelect == "Male Lead Semis":
-    df = load_data("https://docs.google.com/spreadsheets/d/1MYp0ek0L1XlZfDfcCWhgeMT97m2iJpmj7fk4Mj/export?format=csv&id=1043E2777")
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=1842627779")
 elif genderSelect == "Female Lead Semis":
-    df = load_data("https://docs.google.com/spreadsheets/d/1MYp0ek0L1XlZfDfcCWhgeMT97m2iJpmj7fk4Mj/export?format=csv&id=1374E5433")
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=137564533")
 elif genderSelect == "Male Lead Final":
-    df = load_data("https://docs.google.com/spreadsheets/d/1MYp0ek0L1XlZfDfcCWhgeMT97m2iJpmj7fk4Mj/export?format=csv&id=1497E4713")
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=0")
 elif genderSelect == "Female Lead Final":
-    df = load_data("https://docs.google.com/spreadsheets/d/1MYp0ek0L1XlZfDfcCWhgeMT97m2iJpmj7fk4Mj/export?format=csv&id=1")
+    df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=1947247931")
 
 # Ensure dataframe loaded
 if df is None or df.empty:
