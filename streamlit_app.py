@@ -73,20 +73,29 @@ for x in range(len(df)):
         name = f"Athlete {x+1}"
     with st.expander(str(name)):
 
-        row = df.iloc[x]
-        st.markdown(
-            f"""
-            <div style="background-color:#f9f9f9; border-radius:15px; padding:20px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1)">
-                <h2 style="margin-bottom:5px;">{int(float(row.get('Actual Ranking', 0) or 0))}. {row.get('Name','')}</h2>
-                <p><b>Total Score:</b> {row.get('TotalScore','')}</p>
-                <p><b>Points to 1st:</b> {row.get('Points to 1st','')}</p>
-                <p><b>Points to 2nd:</b> {row.get('Points to 2nd','')}</p>
-                <p><b>Points to 3rd:</b> {row.get('Points to 3rd','')}</p>
-                <p><b>Min holds to Q:</b> {row.get('Min Hold to Qualify','')}</p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+row = df.iloc[x]
+
+# safely handle Actual Ranking
+rank_val = row.get("Actual Ranking", 0)
+try:
+    rank_val = int(float(rank_val))
+except (ValueError, TypeError):
+    rank_val = 0
+
+st.markdown(
+    f"""
+    <div style="background-color:#f9f9f9; border-radius:15px; padding:20px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1)">
+        <h2 style="margin-bottom:5px;">{rank_val}. {row.get('Name','')}</h2>
+        <p><b>Total Score:</b> {row.get('TotalScore','')}</p>
+        <p><b>Points to 1st:</b> {row.get('Points to 1st','')}</p>
+        <p><b>Points to 2nd:</b> {row.get('Points to 2nd','')}</p>
+        <p><b>Points to 3rd:</b> {row.get('Points to 3rd','')}</p>
+        <p><b>Min holds to Q:</b> {row.get('Min Hold to Qualify','')}</p>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 
 
 
