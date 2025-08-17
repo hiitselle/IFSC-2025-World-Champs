@@ -73,27 +73,25 @@ for x in range(len(df)):
         name = f"Athlete {x+1}"
     with st.expander(str(name)):
 
-row = df.iloc[x]
+with st.container():
+    row = df.iloc[x]
 
-rank_val = row.get("Actual Ranking", "")
-if str(rank_val).isdigit():  
-    rank_display = str(int(float(rank_val)))  
-else:  
-    rank_display = str(rank_val) if rank_val not in [None, "nan", "NaN"] else "-"
+    rank_val = row.get("Actual Ranking", "")
+    if str(rank_val).isdigit():
+        rank_display = str(int(float(rank_val)))
+    else:
+        rank_display = str(rank_val) if rank_val not in [None, "nan", "NaN"] else "-"
 
-st.markdown(
-    f"""
-    <div style="background-color:#f9f9f9; border-radius:15px; padding:20px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1)">
-        <h2 style="margin-bottom:5px;">{rank_display}. {row.get('Name','')}</h2>
-        <p><b>Total Score:</b> {row.get('TotalScore','')}</p>
-        <p><b>Points to 1st:</b> {row.get('Points to 1st','')}</p>
-        <p><b>Points to 2nd:</b> {row.get('Points to 2nd','')}</p>
-        <p><b>Points to 3rd:</b> {row.get('Points to 3rd','')}</p>
-        <p><b>Min holds to Q:</b> {row.get('Min Hold to Qualify','')}</p>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+    st.markdown(
+        f"""
+        <div style="background-color:#f9f9f9; border-radius:15px; padding:20px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1)">
+            <h2 style="margin-bottom:5px;">{rank_display}. {row.get('Name','')}</h2>
+            <p><b>Total Score:</b> {row.get('TotalScore','')}</p>
+            <p><b>Points to 1st:</b> {row.get('Points to 1st','')}</p>
+            <p><b>Points to 2nd:</b> {row.get('Points to 2nd','')}</p>
+            <p><b>Points to 3rd:</b> {row.get('Points to 3rd','')}</p>
+            <p><b>Min
+
 
 
 
