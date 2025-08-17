@@ -19,7 +19,7 @@ header[data-testid="stHeader"] {
     display: none;
 }
 </style>
-""", unsafe_allow_html=True)
+"", unsafe_allow_html=True)
 
 # Sidebar round selector
 with st.sidebar:
