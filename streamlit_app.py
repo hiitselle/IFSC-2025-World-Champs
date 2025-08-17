@@ -169,6 +169,28 @@ def generateInfo(index):
                     """,
                     unsafe_allow_html=True
                     )
+# --- Athlete selector ---
+athletes = df["Name"].dropna().tolist()
+selected_athlete = st.selectbox("Select an athlete", athletes)
+
+# --- Show details ---
+if selected_athlete:
+    row = df[df["Name"] == selected_athlete].iloc[0]
+
+    st.subheader(f"📊 {selected_athlete}")
+
+    st.write(f"**Total Score (D):** {row['TotalScore']}")
+    st.write(f"**Points to 1st (I):** {row['Points to 1st']}")
+    st.write(f"**Hold for Current 1st (R):** {row['Hold for Current 1st']}")
+    st.write(f"**Points to 2nd (J):** {row['Points to 2nd']}")
+    st.write(f"**Hold for Current 2nd (S):** {row['Hold for Current 2nd']}")
+    st.write(f"**Points to 3rd (K):** {row['Points to 3rd']}")
+    st.write(f"**Hold for Current 3rd (T):** {row['Hold for Current 3rd']}")
+    st.write(f"**Actual Ranking (N):** {row['Actual Ranking']}")
+    st.write(f"**Qualified (O):** {row['Qualified']}")
+    st.write(f"**Min Needed (Q):** {row['min needed']}")
+    st.write(f"**Min Hold to Qualify (U):** {row['Min Hold to Qualify']}")
+
                  
 for x in range(len(df)):
     with st.expander(df['Name'].iloc[x]):
