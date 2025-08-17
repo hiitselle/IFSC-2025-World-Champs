@@ -114,7 +114,7 @@ def generateInfo(x):
 st.markdown(
     """
     <div style="background-color:#f9f9f9; border-radius:15px; padding:20px;">
-        <h3>Men's Boulder</h3>
+        <h3>Mens Boulder</h3>
         <ul>
             <li>Top 1: Qualified ✅</li>
             <li>Top 2: Needs Top to Qualify</li>
