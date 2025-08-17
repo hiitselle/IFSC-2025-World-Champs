@@ -118,5 +118,5 @@ for x in range(len(df)):
     with st.expander(df["Name"].iloc[x]):
         generateInfo(x)
 
-st.write("Made by Elier ✨")
+st.write("Made by Elle ✨")
 
