@@ -21,8 +21,17 @@ header[data-testid="stHeader"] {
 </style>
 """, unsafe_allow_html=True)
 
-# --- Sidebar Leaderboard (PUT THIS AFTER YOU LOAD df) ---
-st.sidebar.title("📊 Current Leaderboard")
+# Sidebar round selector
+with st.sidebar:
+    genderSelect = st.selectbox(
+        "Select Round",
+        [
+            "Male Boulder Semis", "Female Boulder Semis",
+            "Male Boulder Final", "Female Boulder Final",
+            "Male Lead Semis", "Female Lead Semis",
+            "Male Lead Final", "Female Lead Final"
+        ]
+    )
 
 # Load data from Google Sheets
 @st.cache_data(ttl=600)
@@ -72,17 +81,6 @@ for x in range(len(df)):
             unsafe_allow_html=True
         )
 
-# Sidebar round selector
-with st.sidebar:
-    genderSelect = st.selectbox(
-        "Select Round",
-        [
-            "Male Boulder Semis", "Female Boulder Semis",
-            "Male Boulder Final", "Female Boulder Final",
-            "Male Lead Semis", "Female Lead Semis",
-            "Male Lead Final", "Female Lead Final"
-        ]
-    )
 
 
 # Ensure dataframe loaded
