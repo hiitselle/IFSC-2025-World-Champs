@@ -75,17 +75,16 @@ for x in range(len(df)):
 
 row = df.iloc[x]
 
-# safely handle Actual Ranking
-rank_val = row.get("Actual Ranking", 0)
-try:
-    rank_val = int(float(rank_val))
-except (ValueError, TypeError):
-    rank_val = 0
+rank_val = row.get("Actual Ranking", "")
+if str(rank_val).isdigit():  
+    rank_display = str(int(float(rank_val)))  
+else:  
+    rank_display = str(rank_val) if rank_val not in [None, "nan", "NaN"] else "-"
 
 st.markdown(
     f"""
     <div style="background-color:#f9f9f9; border-radius:15px; padding:20px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1)">
-        <h2 style="margin-bottom:5px;">{rank_val}. {row.get('Name','')}</h2>
+        <h2 style="margin-bottom:5px;">{rank_display}. {row.get('Name','')}</h2>
         <p><b>Total Score:</b> {row.get('TotalScore','')}</p>
         <p><b>Points to 1st:</b> {row.get('Points to 1st','')}</p>
         <p><b>Points to 2nd:</b> {row.get('Points to 2nd','')}</p>
@@ -95,7 +94,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
 
 
 
