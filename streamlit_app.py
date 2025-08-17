@@ -111,22 +111,21 @@ def generateInfo(x):
     else:
         badge = "🔴 Not Qualified"
 
-    st.markdown(
-        f"""
-        <div style="background-color:#f9f9f9; border-radius:15px; padding:20px;
-                    box-shadow: 4px 4px 10px rgba(0,0,0,0.1); color:black;">
-            <h2 style="margin-bottom:5px;">{int(row.get('Actual Ranking', 0))}. {row.get('Name','')}</h2>
-            <p><b>{badge}</b></p>
-            <p><b>Total Score:</b> {row.get('TotalScore','')}</p>
-            <p><b>Points to 1st:</b> {row.get('Points to 1st','')}</p>
-            <p><b>Points to 2nd:</b> {row.get('Points to 2nd','')}</p>
-            <p><b>Points to 3rd:</b> {row.get('Points to 3rd','')}</p>
-            <p><b>Min Needed:</b> {row.get('Min needed','')}</p>
-            <p><b>Min Hold to Qualify:</b> {row.get('Min Hold to Qualify','')}</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+   st.markdown(
+    """
+    <div style="background-color:#f9f9f9; border-radius:15px; padding:20px;">
+        <h3>Men's Boulder</h3>
+        <ul>
+            <li>Top 1: Qualified ✅</li>
+            <li>Top 2: Needs Top to Qualify</li>
+            <li>Top 3: Needs Zone (Fewer Tops)</li>
+            <li>Top 4: Needs Zone and Tops</li>
+        </ul>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 
 # ---- Athlete Selector with Ranking ----
 st.title("👟 Athlete Rankings")
