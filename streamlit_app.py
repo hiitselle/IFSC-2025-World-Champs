@@ -111,7 +111,7 @@ def generateInfo(x):
     else:
         badge = "🔴 Not Qualified"
 
-   st.markdown(
+st.markdown(
     """
     <div style="background-color:#f9f9f9; border-radius:15px; padding:20px;">
         <h3>Men's Boulder</h3>
@@ -125,6 +125,7 @@ def generateInfo(x):
     """,
     unsafe_allow_html=True
 )
+
 
 
 # ---- Athlete Selector with Ranking ----
