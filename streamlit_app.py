@@ -87,27 +87,54 @@ else:
     df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=1947247931")
 df = df.astype(str)
 
-# --- Athlete selector ---
-athletes = df["Name"].dropna().tolist()
-selected_athlete = st.selectbox("Select an athlete", athletes)
+# --- Athlete selector with ranking ---
+st.title("🏆 Seoul World Champs 2025")
 
-# --- Show details ---
+df = df.sort_values(by="Actual Ranking")  # ensure ranked order
+athletes_display = [
+    f"{int(row['Actual Ranking'])}. {row['Name']}"
+    for _, row in df.iterrows()
+]
+selected_display = st.selectbox("Select an athlete", athletes_display)
+
+# Extract just the athlete name from the dropdown choice
+selected_athlete = selected_display.split(". ", 1)[1]
+
+# --- Athlete Card ---
 if selected_athlete:
     row = df[df["Name"] == selected_athlete].iloc[0]
 
-    st.subheader(f"📊 {selected_athlete}")
+    # Qualification Badge
+    qualified = str(row["Qualified"]).strip().lower()
+    if qualified in ["yes", "qualified", "true", "1"]:
+        badge = "🟢 Qualified"
+    else:
+        badge = "🔴 Not Qualified"
 
-    st.write(f"**Total Score (D):** {row['TotalScore']}")
-    st.write(f"**Points to 1st (I):** {row['Points to 1st']}")
-    st.write(f"**Hold for Current 1st (R):** {row['Hold for Current 1st']}")
-    st.write(f"**Points to 2nd (J):** {row['Points to 2nd']}")
-    st.write(f"**Hold for Current 2nd (S):** {row['Hold for Current 2nd']}")
-    st.write(f"**Points to 3rd (K):** {row['Points to 3rd']}")
-    st.write(f"**Hold for Current 3rd (T):** {row['Hold for Current 3rd']}")
-    st.write(f"**Actual Ranking (N):** {row['Actual Ranking']}")
-    st.write(f"**Qualified (O):** {row['Qualified']}")
-    st.write(f"**Min Needed (Q):** {row['min needed']}")
-    st.write(f"**Min Hold to Qualify (U):** {row['Min Hold to Qualify']}")
+    st.markdown(
+        f"""
+        <div style="
+            background-color:#f9f9f9;
+            border-radius:15px;
+            padding:20px;
+            box-shadow:0 4px 10px rgba(0,0,0,0.1);
+        ">
+            <h2 style="margin-bottom:5px;">{row['Actual Ranking']}. {selected_athlete}</h2>
+            <p style="font-size:18px; font-weight:bold;">{badge}</p>
+
+            <hr style="margin:10px 0;">
+
+            <p><b>Total Score:</b> {row['TotalScore']}</p>
+            <p><b>Points to 1st:</b> {row['Points to 1st']} | <b>Hold:</b> {row['Hold for Current 1st']}</p>
+            <p><b>Points to 2nd:</b> {row['Points to 2nd']} | <b>Hold:</b> {row['Hold for Current 2nd']}</p>
+            <p><b>Points to 3rd:</b> {row['Points to 3rd']} | <b>Hold:</b> {row['Hold for Current 3rd']}</p>
+            
+            <p><b>Actual Ranking:</b> #{row['Actual Ranking']}</p>
+            <p><b>Min Needed:</b> {row['min needed']} | <b>Min Hold to Qualify:</b> {row['Min Hold to Qualify']}</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
                  
 for x in range(len(df)):
