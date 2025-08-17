@@ -122,10 +122,9 @@ st.markdown(
             <li>Top 4: Needs Zone and Tops</li>
         </ul>
     </div>
-    """,
+    """,  # 👈 comma comes after the triple quotes on same line
     unsafe_allow_html=True
 )
-
 
 
 # ---- Athlete Selector with Ranking ----
