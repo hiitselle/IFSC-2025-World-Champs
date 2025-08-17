@@ -122,9 +122,10 @@ st.markdown(
             <li>Top 4: Needs Zone and Tops</li>
         </ul>
     </div>
-    """, 
+    """,
     unsafe_allow_html=True
 )
+
 
 
 # ---- Athlete Selector with Ranking ----
