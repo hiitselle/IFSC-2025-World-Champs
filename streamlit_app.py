@@ -92,7 +92,18 @@ with st.container():
             <p><b>Points to 3rd:</b> {row.get('Points to 3rd','')}</p>
             <p><b>Min
 
+# Around line 90, change your code to handle invalid numbers:
+points_to_first = row.get('Points to 1st', '')
+if points_to_first == '' or points_to_first is None:
+    points_display = 'N/A'
+else:
+    try:
+        points_display = str(float(points_to_first))
+    except ValueError:
+        points_display = str(points_to_first)
 
+# Then use it in your HTML:
+f"<p><b>Points to 1st:</b> {points_display}</p>"
 
 
 
