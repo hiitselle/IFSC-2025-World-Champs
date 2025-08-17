@@ -87,6 +87,28 @@ else:
     df = load_data("https://docs.google.com/spreadsheets/d/1RVgQboeDCi1X2zEQdCzWqe9HYQTJpj5EumjFXf4qjN0/export?format=csv&gid=1947247931")
 df = df.astype(str)
 
+for x in range(len(df)):
+    with st.expander(df['Name'].iloc[x]):
+        generateInfo(x)
+     
+def generateInfo(idx):
+    row = df.iloc[idx]
+    st.markdown(f"""
+    <hr style="margin:10px 0;">
+    <p><b>Total Score:</b> {row.get('TotalScore', 0)}</p>
+    <p><b>Points to 1st:</b> {row.get('PointsTo1st', 0)} | <b>Hold:</b> {row.get('HoldCurrent1st', 0)}</p>
+    <p><b>Points to 2nd:</b> {row.get('PointsTo2nd', 0)} | <b>Hold:</b> {row.get('HoldCurrent2nd', 0)}</p>
+    <p><b>Points to 3rd:</b> {row.get('PointsTo3rd', 0)} | <b>Hold:</b> {row.get('HoldCurrent3rd', 0)}</p>
+    <p><b>Actual Ranking:</b> #{row.get('Actual Ranking', 'N/A')}</p>
+    <p><b>Min Needed:</b> {row.get('MinNeeded', 0)} | <b>Min Hold to Qualify:</b> {row.get('MinHoldToQualify', '-')}</p>
+    """, unsafe_allow_html=True)
+
+for x in range(len(df)):
+    with st.expander(df['Name'].iloc[x]):
+        generateInfo(x)
+
+
+
 # --- Athlete selector with ranking ---
 st.title("🏆 Seoul World Champs 2025")
 
