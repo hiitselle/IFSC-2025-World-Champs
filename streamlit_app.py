@@ -60,10 +60,13 @@ if df is None or df.empty:
     st.error("No data loaded for this round.")
     st.stop()
 
-# Clean the data first
-df['Points to 1st'] = pd.to_numeric(df['Points to 1st'], errors='coerce').fillna('')
-df['Points to 2nd'] = pd.to_numeric(df['Points to 2nd'], errors='coerce').fillna('')
-df['Points to 3rd'] = pd.to_numeric(df['Points to 3rd'], errors='coerce').fillna('')
+# Clean the data first with correct column names
+if 'Points to 1st na' in df.columns:
+    df['Points to 1st na'] = pd.to_numeric(df['Points to 1st na'], errors='coerce').fillna('')
+if 'Points to 2nd na' in df.columns:
+    df['Points to 2nd na'] = pd.to_numeric(df['Points to 2nd na'], errors='coerce').fillna('')
+if 'Points to 3rd na' in df.columns:
+    df['Points to 3rd na'] = pd.to_numeric(df['Points to 3rd na'], errors='coerce').fillna('')
 
 leaderboard = df.sort_values(by="Actual Ranking")[
     ["Actual Ranking", "Name", "TotalScore"]
@@ -87,35 +90,43 @@ def generateInfo(x):
         except (ValueError, TypeError):
             rank_display = str(rank_val)
 
-    # Handle points safely
-    def safe_get_points(column_name):
+    # Handle data safely with correct column names
+    def safe_get_value(column_name):
         val = row.get(column_name, '')
         if pd.isna(val) or val == '':
             return 'N/A'
-        try:
-            return str(float(val))
-        except (ValueError, TypeError):
-            return str(val)
+        return str(val)
 
-    points_to_first = safe_get_points('Points to 1st')
-    points_to_second = safe_get_points('Points to 2nd')
-    points_to_third = safe_get_points('Points to 3rd')
+    # Get data using correct column names from the sheet
+    name = safe_get_value('Name')
+    total_score = safe_get_value('TotalScore')
+    boulder_score = safe_get_value('BoulderScore')
+    route_score = safe_get_value('RouteScore')
+    points_to_1st = safe_get_value('Points to 1st na')
+    points_to_2nd = safe_get_value('Points to 2nd na') 
+    points_to_3rd = safe_get_value('Points to 3rd na')
+    worst_case = safe_get_value('Worst Case')
 
     qualified = str(row.get("Qualified", "")).strip().lower()
-    if qualified in ["yes", "true", "1"]:
+    if qualified in ["qualified", "true", "1"]:
         badge = "🟢 Qualified"
-    else:
+    elif qualified in ["not qualified", "false", "0"]:
         badge = "🔴 Not Qualified"
+    else:
+        badge = f"❓ {qualified}"
 
     st.markdown(
         f"""
-        <div style="background-color:#f9f9f9; border-radius:15px; padding:20px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1)">
-            <h2 style="margin-bottom:5px;">{rank_display}. {row.get('Name','')}</h2>
-            <p><b>Total Score:</b> {row.get('TotalScore','')}</p>
-            <p><b>Points to 1st:</b> {points_to_first}</p>
-            <p><b>Points to 2nd:</b> {points_to_second}</p>
-            <p><b>Points to 3rd:</b> {points_to_third}</p>
-            <p><b>Status:</b> {badge}</p>
+        <div style="background-color:#ffffff; color:#000000; border-radius:15px; padding:20px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1); margin:10px 0;">
+            <h2 style="margin-bottom:5px; color:#000000;">#{rank_display} {name}</h2>
+            <p style="color:#000000;"><b>Total Score:</b> {total_score}</p>
+            <p style="color:#000000;"><b>Boulder Score:</b> {boulder_score}</p>
+            <p style="color:#000000;"><b>Route Score:</b> {route_score}</p>
+            <p style="color:#000000;"><b>Points to 1st:</b> {points_to_1st}</p>
+            <p style="color:#000000;"><b>Points to 2nd:</b> {points_to_2nd}</p>
+            <p style="color:#000000;"><b>Points to 3rd:</b> {points_to_3rd}</p>
+            <p style="color:#000000;"><b>Worst Case:</b> {worst_case}</p>
+            <p style="color:#000000;"><b>Status:</b> {badge}</p>
         </div>
         """,
         unsafe_allow_html=True
