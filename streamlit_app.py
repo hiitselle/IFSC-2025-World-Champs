@@ -116,7 +116,7 @@ st.markdown(
     <div style="background-color:#f9f9f9; border-radius:15px; padding:20px;">
         <h3>Mens Boulder</h3>
         <ul>
-            <li>Top 1: Qualified ✅</li>
+            <li>Top 1: Qualified </li>
             <li>Top 2: Needs Top to Qualify</li>
             <li>Top 3: Needs Zone (Fewer Tops)</li>
             <li>Top 4: Needs Zone and Tops</li>
