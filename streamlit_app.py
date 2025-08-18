@@ -68,9 +68,14 @@ if 'Points to 2nd na' in df.columns:
 if 'Points to 3rd na' in df.columns:
     df['Points to 3rd na'] = pd.to_numeric(df['Points to 3rd na'], errors='coerce').fillna('')
 
+# Create leaderboard with proper formatting
 leaderboard = df.sort_values(by="Actual Ranking")[
     ["Actual Ranking", "Name", "TotalScore"]
-]
+].copy()
+
+# Format the ranking to show as integers
+leaderboard["Actual Ranking"] = leaderboard["Actual Ranking"].astype(int)
+
 st.sidebar.table(leaderboard.head(10))  # Top 10
 
 # --- Main Page (Existing Athlete Cards) ---
