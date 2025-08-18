@@ -68,7 +68,7 @@ if 'Points to 2nd na' in df.columns:
 if 'Points to 3rd na' in df.columns:
     df['Points to 3rd na'] = pd.to_numeric(df['Points to 3rd na'], errors='coerce').fillna('')
 
-# Create leaderboard with proper formatting
+# Create leaderboard with proper formatting (for sidebar - still sorted)
 leaderboard_df = df.copy()
 
 # Clean and convert ranking to numeric, then sort
@@ -158,25 +158,34 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# ---- Athlete Selector with Ranking ----
-st.title("💟 Athlete Rankings")
+# ---- Athlete Selector with Ranking (ORIGINAL SPREADSHEET ORDER) ----
+st.title("👟 Athlete Rankings")
 
-# Create a sorted version for the selector (but don't modify the original df)
-df_sorted = df.copy()
-df_sorted['Actual Ranking'] = pd.to_numeric(df_sorted['Actual Ranking'], errors='coerce')
-df_sorted = df_sorted.dropna(subset=['Actual Ranking'])
-df_sorted = df_sorted.sort_values(by='Actual Ranking')
-
-athletes_display = [
-    f"{int(row['Actual Ranking'])}. {row['Name']}"
-    for _, row in df_sorted.iterrows()
-    if pd.notna(row['Actual Ranking']) and str(row['Name']).strip() != ""
-]
+# Create athletes list in ORIGINAL spreadsheet order (no sorting)
+athletes_display = []
+for index, row in df.iterrows():
+    name = row.get('Name', '')
+    if pd.notna(name) and str(name).strip() != "":
+        rank_val = row.get("Actual Ranking", "")
+        if pd.isna(rank_val) or rank_val == '':
+            rank_display = "-"
+        else:
+            try:
+                rank_display = str(int(float(rank_val)))
+            except (ValueError, TypeError):
+                rank_display = str(rank_val)
+        
+        athletes_display.append(f"{rank_display}. {name}")
 
 if athletes_display:
     selected_display = st.selectbox("Select an athlete", athletes_display)
     if selected_display:
-        selected_name = selected_display.split(". ", 1)[1]
+        # Extract name from the selected display string
+        if ". " in selected_display:
+            selected_name = selected_display.split(". ", 1)[1]
+        else:
+            selected_name = selected_display
+            
         # Find the athlete in the original df to get their original index
         original_athlete_row = df[df['Name'] == selected_name]
         if not original_athlete_row.empty:
@@ -202,4 +211,3 @@ for x in range(len(df)):
         generateInfo(x)
 
 st.write("Made by Elle ✨")
-
