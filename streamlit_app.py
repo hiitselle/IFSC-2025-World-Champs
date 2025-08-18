@@ -6,7 +6,15 @@ import pandas as pd
 
 # Streamlit setup
 st.set_page_config(page_title="IFSC 2025 World Champs", layout="wide")
-st_autorefresh = st.experimental_memo
+
+# Auto-refresh every 5 seconds
+st.markdown("""
+<script>
+setTimeout(function(){
+    window.location.reload();
+}, 5000);
+</script>
+""", unsafe_allow_html=True)
 
 # Background + styling
 st.markdown("""
@@ -34,7 +42,7 @@ with st.sidebar:
     )
 
 # Load data from Google Sheets
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=5)  # Cache for only 5 seconds
 def load_data(sheets_url):
     return pd.read_csv(sheets_url)
 
