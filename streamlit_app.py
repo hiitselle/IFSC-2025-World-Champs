@@ -262,99 +262,150 @@ st.title("👟 Athlete Rankings")
 
 # Create athletes list in ORIGINAL spreadsheet order (no sorting)
 athletes_display = []
-name_col = 'Name' if 'Name' in df.columns else 'Athlete Name'
-rank_col = 'Current Rank' if 'Current Rank' in df.columns else 'Current Position'
 
-for index, row in df.iterrows():
-    name = row.get(name_col, '')
-    if pd.notna(name) and str(name).strip() != "":
-        rank_val = row.get(rank_col, "")
-        if pd.isna(rank_val) or rank_val == '':
-            rank_display = "-"
-        else:
-            try:
-                rank_display = str(int(float(rank_val)))
-            except (ValueError, TypeError):
-                rank_display = str(rank_val)
-        
-        athletes_display.append(f"{rank_display}. {name}")
+# Determine column names safely
+name_col = None
+rank_col = None
 
-if athletes_display:
-    selected_display = st.selectbox("Select an athlete", athletes_display)
-    if selected_display:
-        # Extract name from the selected display string
-        if ". " in selected_display:
-            selected_name = selected_display.split(". ", 1)[1]
-        else:
-            selected_name = selected_display
-            
-        # Find the athlete in the original df to get their original index
-        original_athlete_row = df[df[name_col] == selected_name]
-        if not original_athlete_row.empty:
-            selected_row = original_athlete_row.iloc[0]
-            original_index = original_athlete_row.index[0]
+if 'Name' in df.columns:
+    name_col = 'Name'
+elif 'Athlete Name' in df.columns:
+    name_col = 'Athlete Name'
 
-            # Show athlete card
-            ranking = pd.to_numeric(selected_row[rank_col], errors='coerce')
-            if pd.notna(ranking):
-                st.subheader(f"{selected_row[name_col]} — #{int(ranking)}")
+if 'Current Rank' in df.columns:
+    rank_col = 'Current Rank'
+elif 'Current Position' in df.columns:
+    rank_col = 'Current Position'
+
+if name_col:
+    for index, row in df.iterrows():
+        name = row.get(name_col, '')
+        if pd.notna(name) and str(name).strip() != "":
+            rank_val = row.get(rank_col, "") if rank_col else ""
+            if pd.isna(rank_val) or rank_val == '':
+                rank_display = "-"
             else:
-                st.subheader(f"{selected_row[name_col]}")
-            generateInfo(original_index)
+                try:
+                    rank_display = str(int(float(rank_val)))
+                except (ValueError, TypeError):
+                    rank_display = str(rank_val)
+            
+            athletes_display.append(f"{rank_display}. {name}")
+
+    if athletes_display:
+        selected_display = st.selectbox("Select an athlete", athletes_display)
+        if selected_display:
+            # Extract name from the selected display string
+            if ". " in selected_display:
+                selected_name = selected_display.split(". ", 1)[1]
+            else:
+                selected_name = selected_display
+                
+            # Find the athlete in the original df to get their original index
+            original_athlete_row = df[df[name_col] == selected_name]
+            if not original_athlete_row.empty:
+                selected_row = original_athlete_row.iloc[0]
+                original_index = original_athlete_row.index[0]
+
+                # Show athlete card
+                if rank_col:
+                    ranking = pd.to_numeric(selected_row[rank_col], errors='coerce')
+                    if pd.notna(ranking):
+                        st.subheader(f"{selected_row[name_col]} — #{int(ranking)}")
+                    else:
+                        st.subheader(f"{selected_row[name_col]}")
+                else:
+                    st.subheader(f"{selected_row[name_col]}")
+                generateInfo(original_index)
+else:
+    st.write("No athlete data available.")
 
 # ---- Expanders with all athletes (sorted by actual ranking) ----
 st.subheader("📋 All Athletes")
 
 # Create a copy for sorting by ranking
 df_for_expanders = df.copy()
-name_col = 'Name' if 'Name' in df_for_expanders.columns else 'Athlete Name'
-rank_col = 'Current Rank' if 'Current Rank' in df_for_expanders.columns else 'Current Position'
 
-df_for_expanders[rank_col] = pd.to_numeric(df_for_expanders[rank_col], errors='coerce')
+# Determine column names safely
+name_col = None
+rank_col = None
 
-# Separate athletes with and without rankings
-athletes_with_ranking = df_for_expanders[df_for_expanders[rank_col].notna()].sort_values(by=rank_col)
-athletes_without_ranking = df_for_expanders[df_for_expanders[rank_col].isna()]
+if 'Name' in df_for_expanders.columns:
+    name_col = 'Name'
+elif 'Athlete Name' in df_for_expanders.columns:
+    name_col = 'Athlete Name'
 
-# Show athletes with rankings first (in ranking order)
-for original_index, row in athletes_with_ranking.iterrows():
-    name = row[name_col]
-    ranking = int(row[rank_col])
-    if pd.isna(name) or str(name).strip() == "":
-        name = f"Athlete {original_index+1}"
-    
-    # Check status to style the expander header
-    status = str(row.get("Status", "")).strip().lower()
-    if "qualified" in status and "eliminated" not in status:
-        expander_label = f"🟢 #{ranking} - {name}"
-    elif "eliminated" in status:
-        expander_label = f"🔴 #{ranking} - {name}"
-    elif "still in contention" in status:
-        expander_label = f"🟡 #{ranking} - {name}"
+if 'Current Rank' in df_for_expanders.columns:
+    rank_col = 'Current Rank'
+elif 'Current Position' in df_for_expanders.columns:
+    rank_col = 'Current Position'
+
+if name_col:
+    if rank_col:
+        df_for_expanders[rank_col] = pd.to_numeric(df_for_expanders[rank_col], errors='coerce')
+        
+        # Separate athletes with and without rankings
+        athletes_with_ranking = df_for_expanders[df_for_expanders[rank_col].notna()].sort_values(by=rank_col)
+        athletes_without_ranking = df_for_expanders[df_for_expanders[rank_col].isna()]
+        
+        # Show athletes with rankings first (in ranking order)
+        for original_index, row in athletes_with_ranking.iterrows():
+            name = row[name_col]
+            ranking = int(row[rank_col])
+            if pd.isna(name) or str(name).strip() == "":
+                name = f"Athlete {original_index+1}"
+            
+            # Check status to style the expander header
+            status = str(row.get("Status", "")).strip().lower()
+            if "qualified" in status and "eliminated" not in status:
+                expander_label = f"🟢 #{ranking} - {name}"
+            elif "eliminated" in status:
+                expander_label = f"🔴 #{ranking} - {name}"
+            elif "still in contention" in status:
+                expander_label = f"🟡 #{ranking} - {name}"
+            else:
+                expander_label = f"#{ranking} - {name}"
+            
+            with st.expander(expander_label):
+                generateInfo(original_index)
+        
+        # Show athletes without rankings last
+        for original_index, row in athletes_without_ranking.iterrows():
+            name = row[name_col]
+            if pd.isna(name) or str(name).strip() == "":
+                name = f"Athlete {original_index+1}"
+            
+            # Check status to style the expander header
+            status = str(row.get("Status", "")).strip().lower()
+            if "qualified" in status and "eliminated" not in status:
+                expander_label = f"🟢 Unranked - {name}"
+            elif "eliminated" in status:
+                expander_label = f"🔴 Unranked - {name}"
+            elif "still in contention" in status:
+                expander_label = f"🟡 Unranked - {name}"
+            else:
+                expander_label = f"Unranked - {name}"
+            
+            with st.expander(expander_label):
+                generateInfo(original_index)
     else:
-        expander_label = f"#{ranking} - {name}"
-    
-    with st.expander(expander_label):
-        generateInfo(original_index)
-
-# Show athletes without rankings last
-for original_index, row in athletes_without_ranking.iterrows():
-    name = row[name_col]
-    if pd.isna(name) or str(name).strip() == "":
-        name = f"Athlete {original_index+1}"
-    
-    # Check status to style the expander header
-    status = str(row.get("Status", "")).strip().lower()
-    if "qualified" in status and "eliminated" not in status:
-        expander_label = f"🟢 Unranked - {name}"
-    elif "eliminated" in status:
-        expander_label = f"🔴 Unranked - {name}"
-    elif "still in contention" in status:
-        expander_label = f"🟡 Unranked - {name}"
-    else:
-        expander_label = f"Unranked - {name}"
-    
-    with st.expander(expander_label):
-        generateInfo(original_index)
+        # No ranking column, just show all athletes
+        for original_index, row in df_for_expanders.iterrows():
+            name = row.get(name_col, '')
+            if pd.notna(name) and str(name).strip() != "":
+                status = str(row.get("Status", "")).strip().lower()
+                if "qualified" in status and "eliminated" not in status:
+                    expander_label = f"🟢 {name}"
+                elif "eliminated" in status:
+                    expander_label = f"🔴 {name}"
+                elif "still in contention" in status:
+                    expander_label = f"🟡 {name}"
+                else:
+                    expander_label = f"{name}"
+                
+                with st.expander(expander_label):
+                    generateInfo(original_index)
+else:
+    st.write("No athlete data available.")
 
 st.write("Made by Elle ✨")
