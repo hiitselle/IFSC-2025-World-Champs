@@ -39,16 +39,30 @@ def setup_page():
     header[data-testid="stHeader"] {
         display: none;
     }
+    .stSelectbox > div > div > select {
+        background-color: #333;
+        color: white;
+    }
+    .stTable {
+        background-color: #333;
+    }
     </style>
     """, unsafe_allow_html=True)
 
 @st.cache_data(ttl=5)
 def load_data(sheets_url):
     """Load data from Google Sheets with caching"""
-    return pd.read_csv(sheets_url)
+    try:
+        return pd.read_csv(sheets_url)
+    except Exception as e:
+        st.error(f"Error loading data: {e}")
+        return pd.DataFrame()
 
 def clean_data(df):
     """Clean and standardize dataframe columns"""
+    if df.empty:
+        return df
+        
     # Clean points columns
     points_columns = [
         'Points to 1st', 'Points to 2nd', 'Points to 3rd',
@@ -60,12 +74,10 @@ def clean_data(df):
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna('')
     
     # Clean boulder-specific columns
-    boulder_columns = []
     for i in range(1, 5):
         for suffix in ['T', 'Z', 'Att']:  # Top, Zone, Attempts
             col_name = f'B{i}{suffix}'
             if col_name in df.columns:
-                boulder_columns.append(col_name)
                 df[col_name] = pd.to_numeric(df[col_name], errors='coerce').fillna(0)
     
     return df
@@ -82,7 +94,7 @@ def calculate_boulder_ranking(df):
     
     df_ranked = df.copy()
     
-    # Calculate totals for each athlete
+    # Initialize totals
     df_ranked['Total_Tops'] = 0
     df_ranked['Total_Zones'] = 0  
     df_ranked['Total_Attempts'] = 0
@@ -104,22 +116,14 @@ def calculate_boulder_ranking(df):
             
         # Calculate attempts to achieve tops and zones
         if top_col in df.columns and att_col in df.columns:
-            # If they got the top, count attempts to top, otherwise count all attempts
             top_attempts = df_ranked.apply(lambda row: row[att_col] if row[top_col] > 0 else 0, axis=1)
             df_ranked['Top_Attempts'] += top_attempts.fillna(0)
             
         if zone_col in df.columns and att_col in df.columns and top_col in df.columns:
-            # If they got zone but not top, count attempts to zone
             zone_attempts = df_ranked.apply(lambda row: row[att_col] if (row[zone_col] > 0 and row[top_col] == 0) else 0, axis=1)
             df_ranked['Zone_Attempts'] += zone_attempts.fillna(0)
     
-    # Sort by boulder ranking criteria:
-    # 1. Most tops (descending)
-    # 2. Most zones (descending) 
-    # 3. Fewest attempts to achieve tops (ascending)
-    # 4. Fewest attempts to achieve zones (ascending)
-    # 5. Fewest total attempts (ascending)
-    
+    # Sort by boulder ranking criteria
     df_ranked = df_ranked.sort_values([
         'Total_Tops', 'Total_Zones', 'Top_Attempts', 'Zone_Attempts', 'Total_Attempts'
     ], ascending=[False, False, True, True, True])
@@ -132,28 +136,7 @@ def calculate_boulder_ranking(df):
         f"{int(row['Total_Tops'])}T{int(row['Total_Zones'])}Z {int(row['Top_Attempts'])}/{int(row['Zone_Attempts'])}", axis=1)
     
     return df_ranked
-    """Determine which column names to use based on available columns"""
-    # Name column
-    name_col = None
-    for col in ['Name', 'Athlete Name', 'name', 'athlete_name']:
-        if col in df.columns:
-            name_col = col
-            break
-    
-    # Rank column  
-    rank_col = None
-    for col in ['Current Rank', 'Current Position', 'Rank', 'Position', 'rank', 'position']:
-        if col in df.columns:
-            rank_col = col
-            break
-    
-    # Score column
-    score_col = None
-    for col in ['Manual Score', 'Total Score', 'Score', 'score', 'total_score']:
-        if col in df.columns:
-            score_col = col
-            break
-    
+
 def get_column_names(df):
     """Determine which column names to use based on available columns"""
     # Name column
@@ -231,31 +214,7 @@ def determine_boulder_status(row, rank_col):
                 break
     
     return "still in contention" if has_performance else "unknown"
-    """Return styling based on athlete status"""
-    status = str(status).strip().lower()
-    
-    if "qualified" in status and "eliminated" not in status:
-        return {
-            'badge': "🟢 Qualified",
-            'bg_color': "#d4edda",
-            'border_color': "#28a745",
-            'text_color': "#155724"
-        }
-    elif "eliminated" in status:
-        return {
-            'badge': "🔴 Eliminated", 
-            'bg_color': "#f8d7da",
-            'border_color': "#dc3545",
-            'text_color': "#721c24"
-        }
-    elif "still in contention" in status:
-        return {
-            'badge': "🟡 Still in Contention",
-            'bg_color': "#fff3cd",
-            'border_color': "#ffc107", 
-            'text_color': "#856404"
-        }
-    else:
+
 def get_status_styling(status):
     """Return styling based on athlete status"""
     status = str(status).strip().lower()
@@ -438,7 +397,7 @@ def display_competition_info():
     """Display competition qualification rules"""
     st.markdown(
         """
-        <div style="background-color:#f9f9f9; border-radius:15px; padding:20px;">
+        <div style="background-color:#f9f9f9; border-radius:15px; padding:20px; color: black;">
             <h3>Competition Info</h3>
             <ul>
                 <li>Top 1: Qualified </li>
@@ -467,14 +426,23 @@ def main():
         st.stop()
     
     df = clean_data(df)
+    
+    # Calculate boulder rankings if this is a boulder event
+    if "Boulder" in selected_round:
+        df = calculate_boulder_ranking(df)
+    
     name_col, rank_col, score_col = get_column_names(df)
     
     # Create and display leaderboard in sidebar
     leaderboard = create_leaderboard(df, name_col, rank_col, score_col)
-    st.sidebar.table(leaderboard)
+    with st.sidebar:
+        st.subheader("Top 10")
+        st.table(leaderboard)
     
     # Main page content
     st.title("🏆 Seoul World Champs 2025")
+    st.subheader(f"📊 {selected_round}")
+    
     display_competition_info()
     
     # Athlete selector section
@@ -482,7 +450,7 @@ def main():
     
     # Create athlete selector (preserving original order)
     athletes_display = []
-    if name_col in df.columns:
+    if name_col and name_col in df.columns:
         for index, row in df.iterrows():
             name = row.get(name_col, '')
             if pd.notna(name) and str(name).strip() != "":
@@ -520,15 +488,19 @@ def main():
     st.subheader("📋 All Athletes")
     
     df_sorted = df.copy()
-    if rank_col in df_sorted.columns:
+    if rank_col and rank_col in df_sorted.columns:
         df_sorted[rank_col] = pd.to_numeric(df_sorted[rank_col], errors='coerce')
         
         # Athletes with rankings (sorted)
         athletes_with_ranking = df_sorted[df_sorted[rank_col].notna()].sort_values(by=rank_col)
         for original_index, row in athletes_with_ranking.iterrows():
-            name = row[name_col]
-            ranking = int(row[rank_col])
+            name = row[name_col] if name_col else "Unknown"
+            ranking = int(row[rank_col]) if pd.notna(row[rank_col]) else 0
             status = str(row.get("Status", "")).strip().lower()
+            
+            # Determine status if not explicitly set
+            if not status or status == "":
+                status = determine_boulder_status(row, rank_col)
             
             # Status emoji for expander
             if "qualified" in status and "eliminated" not in status:
@@ -546,9 +518,12 @@ def main():
         # Athletes without rankings
         athletes_without_ranking = df_sorted[df_sorted[rank_col].isna()]
         for original_index, row in athletes_without_ranking.iterrows():
-            name = row[name_col]
+            name = row[name_col] if name_col else "Unknown"
             if pd.notna(name) and str(name).strip() != "":
                 status = str(row.get("Status", "")).strip().lower()
+                
+                if not status or status == "":
+                    status = determine_boulder_status(row, rank_col)
                 
                 if "qualified" in status and "eliminated" not in status:
                     expander_label = f"🟢 Unranked - {name}"
@@ -564,9 +539,12 @@ def main():
     else:
         # No ranking column available
         for original_index, row in df_sorted.iterrows():
-            name = row.get(name_col, '')
+            name = row.get(name_col, '') if name_col else 'Unknown'
             if pd.notna(name) and str(name).strip() != "":
                 status = str(row.get("Status", "")).strip().lower()
+                
+                if not status or status == "":
+                    status = determine_boulder_status(row, rank_col)
                 
                 if "qualified" in status and "eliminated" not in status:
                     expander_label = f"🟢 {name}"
