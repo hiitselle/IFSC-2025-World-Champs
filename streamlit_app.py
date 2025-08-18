@@ -132,13 +132,12 @@ def generateInfo(x):
         bg_color = "#d4edda"  # Light green background
         border_color = "#28a745"  # Green border
         text_color = "#155724"  # Dark green text
-    elif qualified in ["not qualified", "false", "0"]:
-        badge = "🔴 Not Qualified"
-        bg_color = "#f8d7da"  # Light red background
-        border_color = "#dc3545"  # Red border
-        text_color = "#721c24"  # Dark red text
     else:
-        badge = f"❓ {qualified}"
+        # Default styling for all non-qualified athletes
+        if qualified in ["not qualified", "false", "0"]:
+            badge = "🔴 Not Qualified"
+        else:
+            badge = f"❓ {qualified}"
         bg_color = "#ffffff"  # White background
         border_color = "#cccccc"  # Gray border
         text_color = "#000000"  # Black text
