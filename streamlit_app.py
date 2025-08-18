@@ -127,14 +127,14 @@ def generateInfo(x):
     worst_case = safe_get_value('Worst Case')
 
     qualified = str(row.get("Qualified", "")).strip().lower()
-    if "qualified" in qualified:  # Check if "qualified" is anywhere in the text
+    if qualified in ["qualified", "true", "1"] or (qualified.startswith("qualified") and "not" not in qualified):
         badge = "🟢 Qualified"
         bg_color = "#d4edda"  # Light green background
         border_color = "#28a745"  # Green border
         text_color = "#155724"  # Dark green text
     else:
         # Default styling for all non-qualified athletes
-        if qualified in ["not qualified", "false", "0"]:
+        if "not qualified" in qualified:
             badge = "🔴 Not Qualified"
         else:
             badge = f"❓ {qualified}"
@@ -236,7 +236,7 @@ for original_index, row in athletes_with_ranking.iterrows():
     
     # Check if qualified to style the expander header
     qualified = str(row.get("Qualified", "")).strip().lower()
-    if "qualified" in qualified:
+    if qualified in ["qualified", "true", "1"] or (qualified.startswith("qualified") and "not" not in qualified):
         expander_label = f"🟢 #{ranking} - {name}"
     else:
         expander_label = f"#{ranking} - {name}"
@@ -252,7 +252,7 @@ for original_index, row in athletes_without_ranking.iterrows():
     
     # Check if qualified to style the expander header
     qualified = str(row.get("Qualified", "")).strip().lower()
-    if "qualified" in qualified:
+    if qualified in ["qualified", "true", "1"] or (qualified.startswith("qualified") and "not" not in qualified):
         expander_label = f"🟢 Unranked - {name}"
     else:
         expander_label = f"Unranked - {name}"
