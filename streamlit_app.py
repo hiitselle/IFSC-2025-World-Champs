@@ -59,9 +59,79 @@ def clean_data(df):
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna('')
     
+    # Clean boulder-specific columns
+    boulder_columns = []
+    for i in range(1, 5):
+        for suffix in ['T', 'Z', 'Att']:  # Top, Zone, Attempts
+            col_name = f'B{i}{suffix}'
+            if col_name in df.columns:
+                boulder_columns.append(col_name)
+                df[col_name] = pd.to_numeric(df[col_name], errors='coerce').fillna(0)
+    
     return df
 
-def get_column_names(df):
+def calculate_boulder_ranking(df):
+    """Calculate live boulder ranking based on tops, zones, and attempts"""
+    if df.empty:
+        return df
+    
+    # Check if we have boulder data columns
+    boulder_cols_exist = any(col.startswith('B') and col.endswith(('T', 'Z', 'Att')) for col in df.columns)
+    if not boulder_cols_exist:
+        return df
+    
+    df_ranked = df.copy()
+    
+    # Calculate totals for each athlete
+    df_ranked['Total_Tops'] = 0
+    df_ranked['Total_Zones'] = 0  
+    df_ranked['Total_Attempts'] = 0
+    df_ranked['Top_Attempts'] = 0
+    df_ranked['Zone_Attempts'] = 0
+    
+    # Sum across all 4 boulders
+    for i in range(1, 5):
+        top_col = f'B{i}T'
+        zone_col = f'B{i}Z'  
+        att_col = f'B{i}Att'
+        
+        if top_col in df.columns:
+            df_ranked['Total_Tops'] += df_ranked[top_col].fillna(0)
+        if zone_col in df.columns:
+            df_ranked['Total_Zones'] += df_ranked[zone_col].fillna(0)
+        if att_col in df.columns:
+            df_ranked['Total_Attempts'] += df_ranked[att_col].fillna(0)
+            
+        # Calculate attempts to achieve tops and zones
+        if top_col in df.columns and att_col in df.columns:
+            # If they got the top, count attempts to top, otherwise count all attempts
+            top_attempts = df_ranked.apply(lambda row: row[att_col] if row[top_col] > 0 else 0, axis=1)
+            df_ranked['Top_Attempts'] += top_attempts.fillna(0)
+            
+        if zone_col in df.columns and att_col in df.columns and top_col in df.columns:
+            # If they got zone but not top, count attempts to zone
+            zone_attempts = df_ranked.apply(lambda row: row[att_col] if (row[zone_col] > 0 and row[top_col] == 0) else 0, axis=1)
+            df_ranked['Zone_Attempts'] += zone_attempts.fillna(0)
+    
+    # Sort by boulder ranking criteria:
+    # 1. Most tops (descending)
+    # 2. Most zones (descending) 
+    # 3. Fewest attempts to achieve tops (ascending)
+    # 4. Fewest attempts to achieve zones (ascending)
+    # 5. Fewest total attempts (ascending)
+    
+    df_ranked = df_ranked.sort_values([
+        'Total_Tops', 'Total_Zones', 'Top_Attempts', 'Zone_Attempts', 'Total_Attempts'
+    ], ascending=[False, False, True, True, True])
+    
+    # Assign rankings
+    df_ranked['Live_Rank'] = range(1, len(df_ranked) + 1)
+    
+    # Create a ranking summary
+    df_ranked['Ranking_Summary'] = df_ranked.apply(lambda row: 
+        f"{int(row['Total_Tops'])}T{int(row['Total_Zones'])}Z {int(row['Top_Attempts'])}/{int(row['Zone_Attempts'])}", axis=1)
+    
+    return df_ranked
     """Determine which column names to use based on available columns"""
     # Name column
     name_col = None
@@ -76,6 +146,32 @@ def get_column_names(df):
         if col in df.columns:
             rank_col = col
             break
+    
+    # Score column
+    score_col = None
+    for col in ['Manual Score', 'Total Score', 'Score', 'score', 'total_score']:
+        if col in df.columns:
+            score_col = col
+            break
+    
+def get_column_names(df):
+    """Determine which column names to use based on available columns"""
+    # Name column
+    name_col = None
+    for col in ['Name', 'Athlete Name', 'name', 'athlete_name']:
+        if col in df.columns:
+            name_col = col
+            break
+    
+    # Rank column - prefer live calculated rank for boulder
+    rank_col = None
+    if 'Live_Rank' in df.columns:
+        rank_col = 'Live_Rank'
+    else:
+        for col in ['Current Rank', 'Current Position', 'Rank', 'Position', 'rank', 'position']:
+            if col in df.columns:
+                rank_col = col
+                break
     
     # Score column
     score_col = None
@@ -111,6 +207,55 @@ def create_leaderboard(df, name_col, rank_col, score_col):
     
     return pd.DataFrame({"Info": ["No ranking data available"]})
 
+def determine_boulder_status(row, rank_col):
+    """Determine qualification status for boulder events"""
+    if rank_col and rank_col in row:
+        rank = row.get(rank_col, 999)
+        try:
+            rank = int(float(rank))
+            if rank <= 8:  # Top 8 typically qualify for finals
+                return "qualified"
+            elif rank <= 20:  # Still possible depending on format
+                return "still in contention"  
+            else:
+                return "eliminated"
+        except (ValueError, TypeError):
+            pass
+    
+    # Fallback - check if they have any performance data
+    has_performance = False
+    for i in range(1, 5):
+        if f'B{i}T' in row or f'B{i}Z' in row:
+            if row.get(f'B{i}T', 0) > 0 or row.get(f'B{i}Z', 0) > 0:
+                has_performance = True
+                break
+    
+    return "still in contention" if has_performance else "unknown"
+    """Return styling based on athlete status"""
+    status = str(status).strip().lower()
+    
+    if "qualified" in status and "eliminated" not in status:
+        return {
+            'badge': "🟢 Qualified",
+            'bg_color': "#d4edda",
+            'border_color': "#28a745",
+            'text_color': "#155724"
+        }
+    elif "eliminated" in status:
+        return {
+            'badge': "🔴 Eliminated", 
+            'bg_color': "#f8d7da",
+            'border_color': "#dc3545",
+            'text_color': "#721c24"
+        }
+    elif "still in contention" in status:
+        return {
+            'badge': "🟡 Still in Contention",
+            'bg_color': "#fff3cd",
+            'border_color': "#ffc107", 
+            'text_color': "#856404"
+        }
+    else:
 def get_status_styling(status):
     """Return styling based on athlete status"""
     status = str(status).strip().lower()
@@ -138,10 +283,10 @@ def get_status_styling(status):
         }
     else:
         return {
-            'badge': f"❓ {status}",
-            'bg_color': "#ffffff",
-            'border_color': "#cccccc",
-            'text_color': "#000000"
+            'badge': f"⚪ {status.title() if status else 'Unknown'}",
+            'bg_color': "#f8f9fa",
+            'border_color': "#dee2e6",
+            'text_color': "#495057"
         }
 
 def safe_get_value(row, column_name):
@@ -176,8 +321,15 @@ def generate_athlete_card(df, row_index):
             except (ValueError, TypeError):
                 rank_display = str(rank_val)
     
-    # Get status
+    # Get status - improve for boulder events
     status = row.get("Status", "")
+    if not status or pd.isna(status) or str(status).strip() == "":
+        # Try to determine status automatically for boulder events
+        if any('B' in col and col.endswith(('T', 'Z', 'Att')) for col in df.columns):
+            status = determine_boulder_status(row, rank_col)
+        else:
+            status = "unknown"
+    
     styling = get_status_styling(status)
     
     # Create the card using a more minimal approach
@@ -195,7 +347,37 @@ def generate_athlete_card(df, row_index):
                 if total_score != 'N/A':
                     st.write(f"**Total Score:** {total_score}")
             
-            # Boulder scores if available
+            # Show boulder ranking summary if available
+            if 'Ranking_Summary' in df.columns:
+                ranking_summary = safe_get_value(row, 'Ranking_Summary')
+                if ranking_summary != 'N/A':
+                    st.write(f"**Boulder Performance:** {ranking_summary}")
+            
+            # Individual boulder results
+            boulder_results = []
+            for i in range(1, 5):
+                top_col = f'B{i}T'
+                zone_col = f'B{i}Z'
+                att_col = f'B{i}Att'
+                
+                if all(col in df.columns for col in [top_col, zone_col, att_col]):
+                    top = int(row.get(top_col, 0)) if pd.notna(row.get(top_col)) else 0
+                    zone = int(row.get(zone_col, 0)) if pd.notna(row.get(zone_col)) else 0
+                    att = int(row.get(att_col, 0)) if pd.notna(row.get(att_col)) else 0
+                    
+                    result = f"B{i}: "
+                    if top > 0:
+                        result += f"{top}T{att}"
+                    elif zone > 0:
+                        result += f"{zone}Z{att}"  
+                    else:
+                        result += f"0 {att}"
+                    boulder_results.append(result)
+            
+            if boulder_results:
+                st.write(f"**Boulder Details:** {' | '.join(boulder_results)}")
+            
+            # Boulder scores if available (fallback)
             boulder_scores = []
             for i in range(1, 5):
                 col_name = f'Boulder {i} Score'
@@ -204,7 +386,7 @@ def generate_athlete_card(df, row_index):
                     if score != 'N/A':
                         boulder_scores.append(score)
             
-            if boulder_scores:
+            if boulder_scores and not boulder_results:
                 st.write(f"**Boulder Scores:** {', '.join(boulder_scores)}")
         
         with col2:
