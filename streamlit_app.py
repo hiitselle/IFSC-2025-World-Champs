@@ -121,23 +121,32 @@ def generateInfo(x):
     qualified = str(row.get("Qualified", "")).strip().lower()
     if qualified in ["qualified", "true", "1"]:
         badge = "🟢 Qualified"
+        bg_color = "#d4edda"  # Light green background
+        border_color = "#28a745"  # Green border
+        text_color = "#155724"  # Dark green text
     elif qualified in ["not qualified", "false", "0"]:
         badge = "🔴 Not Qualified"
+        bg_color = "#f8d7da"  # Light red background
+        border_color = "#dc3545"  # Red border
+        text_color = "#721c24"  # Dark red text
     else:
         badge = f"❓ {qualified}"
+        bg_color = "#ffffff"  # White background
+        border_color = "#cccccc"  # Gray border
+        text_color = "#000000"  # Black text
 
     st.markdown(
         f"""
-        <div style="background-color:#ffffff; color:#000000; border-radius:15px; padding:20px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1); margin:10px 0;">
-            <h2 style="margin-bottom:5px; color:#000000;">#{rank_display} {name}</h2>
-            <p style="color:#000000;"><b>Total Score:</b> {total_score}</p>
-            <p style="color:#000000;"><b>Boulder Score:</b> {boulder_score}</p>
-            <p style="color:#000000;"><b>Route Score:</b> {route_score}</p>
-            <p style="color:#000000;"><b>Points to 1st:</b> {points_to_1st}</p>
-            <p style="color:#000000;"><b>Points to 2nd:</b> {points_to_2nd}</p>
-            <p style="color:#000000;"><b>Points to 3rd:</b> {points_to_3rd}</p>
-            <p style="color:#000000;"><b>Worst Case:</b> {worst_case}</p>
-            <p style="color:#000000;"><b>Status:</b> {badge}</p>
+        <div style="background-color:{bg_color}; color:{text_color}; border:2px solid {border_color}; border-radius:15px; padding:20px; box-shadow: 4px 4px 10px rgba(0,0,0,0.1); margin:10px 0;">
+            <h2 style="margin-bottom:5px; color:{text_color};">#{rank_display} {name}</h2>
+            <p style="color:{text_color};"><b>Total Score:</b> {total_score}</p>
+            <p style="color:{text_color};"><b>Boulder Score:</b> {boulder_score}</p>
+            <p style="color:{text_color};"><b>Route Score:</b> {route_score}</p>
+            <p style="color:{text_color};"><b>Points to 1st:</b> {points_to_1st}</p>
+            <p style="color:{text_color};"><b>Points to 2nd:</b> {points_to_2nd}</p>
+            <p style="color:{text_color};"><b>Points to 3rd:</b> {points_to_3rd}</p>
+            <p style="color:{text_color};"><b>Worst Case:</b> {worst_case}</p>
+            <p style="color:{text_color};"><b>Status:</b> {badge}</p>
         </div>
         """,
         unsafe_allow_html=True
