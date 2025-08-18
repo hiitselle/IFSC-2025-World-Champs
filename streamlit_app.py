@@ -161,13 +161,15 @@ st.markdown(
 # ---- Athlete Selector with Ranking ----
 st.title("💟 Athlete Rankings")
 
-df['Actual Ranking'] = pd.to_numeric(df['Actual Ranking'], errors='coerce')
-df = df.dropna(subset=['Actual Ranking'])
-df = df.sort_values(by='Actual Ranking')
+# Create a sorted version for the selector (but don't modify the original df)
+df_sorted = df.copy()
+df_sorted['Actual Ranking'] = pd.to_numeric(df_sorted['Actual Ranking'], errors='coerce')
+df_sorted = df_sorted.dropna(subset=['Actual Ranking'])
+df_sorted = df_sorted.sort_values(by='Actual Ranking')
 
 athletes_display = [
     f"{int(row['Actual Ranking'])}. {row['Name']}"
-    for _, row in df.iterrows()
+    for _, row in df_sorted.iterrows()
     if pd.notna(row['Actual Ranking']) and str(row['Name']).strip() != ""
 ]
 
@@ -175,13 +177,21 @@ if athletes_display:
     selected_display = st.selectbox("Select an athlete", athletes_display)
     if selected_display:
         selected_name = selected_display.split(". ", 1)[1]
-        selected_row = df[df['Name'] == selected_name].iloc[0]
+        # Find the athlete in the original df to get their original index
+        original_athlete_row = df[df['Name'] == selected_name]
+        if not original_athlete_row.empty:
+            selected_row = original_athlete_row.iloc[0]
+            original_index = original_athlete_row.index[0]
 
-        # Show athlete card
-        st.subheader(f"{selected_row['Name']} — #{int(selected_row['Actual Ranking'])}")
-        generateInfo(df[df['Name'] == selected_name].index[0])
+            # Show athlete card
+            ranking = pd.to_numeric(selected_row['Actual Ranking'], errors='coerce')
+            if pd.notna(ranking):
+                st.subheader(f"{selected_row['Name']} — #{int(ranking)}")
+            else:
+                st.subheader(f"{selected_row['Name']}")
+            generateInfo(original_index)
 
-# ---- Expanders with all athletes ----
+# ---- Expanders with all athletes (in original spreadsheet order) ----
 st.subheader("📋 All Athletes")
 for x in range(len(df)):
     name = df["Name"].iloc[x]
