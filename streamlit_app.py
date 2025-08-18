@@ -127,7 +127,7 @@ def generateInfo(x):
     worst_case = safe_get_value('Worst Case')
 
     qualified = str(row.get("Qualified", "")).strip().lower()
-    if qualified in ["qualified", "true", "1"]:
+    if "qualified" in qualified:  # Check if "qualified" is anywhere in the text
         badge = "🟢 Qualified"
         bg_color = "#d4edda"  # Light green background
         border_color = "#28a745"  # Green border
@@ -234,7 +234,14 @@ for original_index, row in athletes_with_ranking.iterrows():
     if pd.isna(name) or str(name).strip() == "":
         name = f"Athlete {original_index+1}"
     
-    with st.expander(f"#{ranking} - {name}"):
+    # Check if qualified to style the expander header
+    qualified = str(row.get("Qualified", "")).strip().lower()
+    if "qualified" in qualified:
+        expander_label = f"🟢 #{ranking} - {name}"
+    else:
+        expander_label = f"#{ranking} - {name}"
+    
+    with st.expander(expander_label):
         generateInfo(original_index)
 
 # Show athletes without rankings last
@@ -243,7 +250,14 @@ for original_index, row in athletes_without_ranking.iterrows():
     if pd.isna(name) or str(name).strip() == "":
         name = f"Athlete {original_index+1}"
     
-    with st.expander(f"Unranked - {name}"):
+    # Check if qualified to style the expander header
+    qualified = str(row.get("Qualified", "")).strip().lower()
+    if "qualified" in qualified:
+        expander_label = f"🟢 Unranked - {name}"
+    else:
+        expander_label = f"Unranked - {name}"
+    
+    with st.expander(expander_label):
         generateInfo(original_index)
 
 st.write("Made by Elle ✨")
