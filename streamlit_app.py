@@ -200,14 +200,34 @@ if athletes_display:
                 st.subheader(f"{selected_row['Name']}")
             generateInfo(original_index)
 
-# ---- Expanders with all athletes (in original spreadsheet order) ----
+# ---- Expanders with all athletes (sorted by actual ranking) ----
 st.subheader("📋 All Athletes")
-for x in range(len(df)):
-    name = df["Name"].iloc[x]
+
+# Create a copy for sorting by ranking
+df_for_expanders = df.copy()
+df_for_expanders['Actual Ranking'] = pd.to_numeric(df_for_expanders['Actual Ranking'], errors='coerce')
+
+# Separate athletes with and without rankings
+athletes_with_ranking = df_for_expanders[df_for_expanders['Actual Ranking'].notna()].sort_values(by='Actual Ranking')
+athletes_without_ranking = df_for_expanders[df_for_expanders['Actual Ranking'].isna()]
+
+# Show athletes with rankings first (in ranking order)
+for original_index, row in athletes_with_ranking.iterrows():
+    name = row["Name"]
+    ranking = int(row['Actual Ranking'])
     if pd.isna(name) or str(name).strip() == "":
-        name = f"Athlete {x+1}"
+        name = f"Athlete {original_index+1}"
     
-    with st.expander(str(name)):
-        generateInfo(x)
+    with st.expander(f"#{ranking} - {name}"):
+        generateInfo(original_index)
+
+# Show athletes without rankings last
+for original_index, row in athletes_without_ranking.iterrows():
+    name = row["Name"]
+    if pd.isna(name) or str(name).strip() == "":
+        name = f"Athlete {original_index+1}"
+    
+    with st.expander(f"Unranked - {name}"):
+        generateInfo(original_index)
 
 st.write("Made by Elle ✨")
