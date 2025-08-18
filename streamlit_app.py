@@ -63,26 +63,53 @@ def clean_data(df):
 
 def get_column_names(df):
     """Determine which column names to use based on available columns"""
-    name_col = 'Name' if 'Name' in df.columns else 'Athlete Name'
-    rank_col = 'Current Rank' if 'Current Rank' in df.columns else 'Current Position'
-    score_col = 'Manual Score' if 'Manual Score' in df.columns else 'Total Score'
+    # Name column
+    name_col = None
+    for col in ['Name', 'Athlete Name', 'name', 'athlete_name']:
+        if col in df.columns:
+            name_col = col
+            break
+    
+    # Rank column  
+    rank_col = None
+    for col in ['Current Rank', 'Current Position', 'Rank', 'Position', 'rank', 'position']:
+        if col in df.columns:
+            rank_col = col
+            break
+    
+    # Score column
+    score_col = None
+    for col in ['Manual Score', 'Total Score', 'Score', 'score', 'total_score']:
+        if col in df.columns:
+            score_col = col
+            break
     
     return name_col, rank_col, score_col
 
 def create_leaderboard(df, name_col, rank_col, score_col):
     """Create top 10 leaderboard for sidebar"""
+    if df.empty or name_col is None:
+        return pd.DataFrame({"Info": ["No data available"]})
+    
     leaderboard_df = df.copy()
     
-    if rank_col in leaderboard_df.columns:
+    if rank_col and rank_col in leaderboard_df.columns:
         leaderboard_df[rank_col] = pd.to_numeric(leaderboard_df[rank_col], errors='coerce')
         leaderboard_df = leaderboard_df.dropna(subset=[rank_col])
-        leaderboard_df = leaderboard_df.sort_values(by=rank_col)
-        leaderboard_df[rank_col] = leaderboard_df[rank_col].astype(int)
         
-        cols_to_show = [col for col in [rank_col, name_col, score_col] if col in leaderboard_df.columns]
-        return leaderboard_df[cols_to_show].head(10)
-    else:
-        return pd.DataFrame({"Info": ["No ranking data available"]})
+        if not leaderboard_df.empty:
+            leaderboard_df = leaderboard_df.sort_values(by=rank_col)
+            leaderboard_df[rank_col] = leaderboard_df[rank_col].astype(int)
+            
+            # Select only available columns
+            cols_to_show = []
+            if rank_col: cols_to_show.append(rank_col)
+            if name_col: cols_to_show.append(name_col)
+            if score_col and score_col in leaderboard_df.columns: cols_to_show.append(score_col)
+            
+            return leaderboard_df[cols_to_show].head(10)
+    
+    return pd.DataFrame({"Info": ["No ranking data available"]})
 
 def get_status_styling(status):
     """Return styling based on athlete status"""
@@ -124,86 +151,106 @@ def safe_get_value(row, column_name):
 
 def generate_athlete_card(df, row_index):
     """Generate athlete card using native Streamlit components"""
+    if row_index >= len(df):
+        st.error("Athlete not found")
+        return
+        
     row = df.iloc[row_index]
     name_col, rank_col, score_col = get_column_names(df)
+    
+    # Check if we have the basic required columns
+    if name_col is None or name_col not in df.columns:
+        st.error("No athlete name column found in data")
+        return
     
     # Get basic info
     name = safe_get_value(row, name_col)
     
     # Handle ranking display
-    rank_val = row.get(rank_col, "")
-    if pd.isna(rank_val) or rank_val == '':
-        rank_display = "-"
-    else:
-        try:
-            rank_display = str(int(float(rank_val)))
-        except (ValueError, TypeError):
-            rank_display = str(rank_val)
+    rank_display = "-"
+    if rank_col and rank_col in df.columns:
+        rank_val = row.get(rank_col, "")
+        if not pd.isna(rank_val) and rank_val != '':
+            try:
+                rank_display = str(int(float(rank_val)))
+            except (ValueError, TypeError):
+                rank_display = str(rank_val)
     
     # Get status
     status = row.get("Status", "")
     styling = get_status_styling(status)
     
-    # Use native Streamlit components with CSS styling
-    st.markdown(f"""
-    <div style="
-        background: linear-gradient(135deg, {styling['bg_color']} 0%, {styling['bg_color']}ee 100%);
-        border: 2px solid {styling['border_color']};
-        border-radius: 15px;
-        padding: 20px;
-        margin: 15px 0px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    ">
-        <h3 style="color: {styling['text_color']}; margin-top: 0;">#{rank_display} {name}</h3>
-    """, unsafe_allow_html=True)
-    
-    # Create columns for better layout
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        # Score information
-        total_score = safe_get_value(row, score_col)
-        if total_score != 'N/A':
-            st.markdown(f"**Total Score:** {total_score}")
+    # Create the card using a more minimal approach
+    with st.container():
+        # Header
+        st.markdown(f"### #{rank_display} {name}")
         
-        # Boulder scores if available
-        boulder_scores = []
-        for i in range(1, 5):
-            score = safe_get_value(row, f'Boulder {i} Score')
-            if score != 'N/A':
-                boulder_scores.append(score)
+        # Create columns for layout
+        col1, col2 = st.columns(2)
         
-        if boulder_scores:
-            st.markdown(f"**Boulder Scores:** {', '.join(boulder_scores)}")
-    
-    with col2:
-        # Points information
-        points_mapping = {
-            'Points to 1st': 'Points for 1st Place',
-            'Points to 2nd': 'Points for 2nd Place', 
-            'Points to 3rd': 'Points for 3rd Place'
-        }
+        with col1:
+            # Score information
+            if score_col and score_col in df.columns:
+                total_score = safe_get_value(row, score_col)
+                if total_score != 'N/A':
+                    st.write(f"**Total Score:** {total_score}")
+            
+            # Boulder scores if available
+            boulder_scores = []
+            for i in range(1, 5):
+                col_name = f'Boulder {i} Score'
+                if col_name in df.columns:
+                    score = safe_get_value(row, col_name)
+                    if score != 'N/A':
+                        boulder_scores.append(score)
+            
+            if boulder_scores:
+                st.write(f"**Boulder Scores:** {', '.join(boulder_scores)}")
         
-        for primary, secondary in points_mapping.items():
-            points = safe_get_value(row, primary) if primary in row else safe_get_value(row, secondary)
-            if points != 'N/A':
-                label = primary.replace('Points to', 'Points to').replace('Points for', 'Points for')
-                st.markdown(f"**{label}:** {points}")
+        with col2:
+            # Points information - check if columns exist first
+            points_mapping = {
+                'Points to 1st': 'Points for 1st Place',
+                'Points to 2nd': 'Points for 2nd Place', 
+                'Points to 3rd': 'Points for 3rd Place'
+            }
+            
+            for primary, secondary in points_mapping.items():
+                if primary in df.columns:
+                    points = safe_get_value(row, primary)
+                elif secondary in df.columns:
+                    points = safe_get_value(row, secondary)
+                else:
+                    continue
+                    
+                if points != 'N/A':
+                    label = primary.replace('Points for', 'Points for')
+                    st.write(f"**{label}:** {points}")
+            
+            # Additional info - check if columns exist
+            if 'Worst Finish' in df.columns:
+                worst_finish = safe_get_value(row, 'Worst Finish')
+                if worst_finish != 'N/A':
+                    st.write(f"**Worst Finish:** {worst_finish}")
+            elif 'Worst Possible Finish' in df.columns:
+                worst_finish = safe_get_value(row, 'Worst Possible Finish')
+                if worst_finish != 'N/A':
+                    st.write(f"**Worst Possible Finish:** {worst_finish}")
+            
+            if 'Min to Qualify' in df.columns:
+                min_to_qualify = safe_get_value(row, 'Min to Qualify')
+                if min_to_qualify != 'N/A':
+                    st.write(f"**Min to Qualify:** {min_to_qualify}")
+            elif 'Points Needed for Top 8' in df.columns:
+                min_to_qualify = safe_get_value(row, 'Points Needed for Top 8')
+                if min_to_qualify != 'N/A':
+                    st.write(f"**Points Needed for Top 8:** {min_to_qualify}")
         
-        # Additional info
-        worst_finish = safe_get_value(row, 'Worst Finish') if 'Worst Finish' in row else safe_get_value(row, 'Worst Possible Finish')
-        min_to_qualify = safe_get_value(row, 'Min to Qualify') if 'Min to Qualify' in row else safe_get_value(row, 'Points Needed for Top 8')
+        # Status badge
+        st.write(f"**Status:** {styling['badge']}")
         
-        if worst_finish != 'N/A':
-            st.markdown(f"**Worst Finish:** {worst_finish}")
-        if min_to_qualify != 'N/A':
-            st.markdown(f"**Min to Qualify:** {min_to_qualify}")
-    
-    # Status badge
-    st.markdown(f"**Status:** {styling['badge']}")
-    
-    # Close the div
-    st.markdown("</div>", unsafe_allow_html=True)
+        # Add some spacing
+        st.write("")
 
 def display_competition_info():
     """Display competition qualification rules"""
