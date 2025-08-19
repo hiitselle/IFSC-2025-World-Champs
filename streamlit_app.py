@@ -717,4 +717,381 @@ def create_competition_overview(all_data):
             <h3>👥 Total Athletes</h3>
             <h2>{}</h2>
         </div>
-        ""
+        """.format(total_athletes), unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="metric-card">
+            <h3>🪨 Boulder Entries</h3>
+            <h2>{}</h2>
+        </div>
+        """.format(boulder_athletes), unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div class="metric-card">
+            <h3>🧗 Lead Entries</h3>
+            <h2>{}</h2>
+        </div>
+        """.format(lead_athletes), unsafe_allow_html=True)
+    
+    with col4:
+        st.markdown("""
+        <div class="metric-card">
+            <h3>🏅 Rounds</h3>
+            <h2>{}</h2>
+        </div>
+        """.format(len(all_data)), unsafe_allow_html=True)
+    
+    # Competition structure visualization
+    st.markdown("### 📋 Competition Structure")
+    
+    structure_data = []
+    for round_name, df in all_data.items():
+        structure_data.append({
+            'Round': round_name,
+            'Athletes': len(df[df.iloc[:, 0].notna()]),
+            'Gender': 'Male' if 'Male' in round_name else 'Female',
+            'Discipline': 'Boulder' if 'Boulder' in round_name else 'Lead',
+            'Stage': 'Semifinals' if 'Semis' in round_name else 'Final'
+        })
+    
+    structure_df = pd.DataFrame(structure_data)
+    
+    fig = px.sunburst(
+        structure_df,
+        path=['Discipline', 'Gender', 'Stage'],
+        values='Athletes',
+        title="Competition Structure by Discipline, Gender, and Stage"
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Show recent highlights
+    st.markdown("### 🔥 Recent Highlights")
+    
+    highlights_cols = st.columns(2)
+    
+    with highlights_cols[0]:
+        st.markdown("#### 🪨 Boulder Leaders")
+        # Get boulder final results
+        for round_name in ["Male Boulder Final", "Female Boulder Final"]:
+            if round_name in all_data:
+                df = all_data[round_name]
+                cols_mapping = get_column_mapping(round_name)
+                name_col = cols_mapping.get('name', 'Name')
+                rank_col = cols_mapping.get('rank', 'Current Rank')
+                
+                if name_col in df.columns and rank_col in df.columns:
+                    # Get top 3
+                    df_copy = df.copy()
+                    df_copy[rank_col] = pd.to_numeric(df_copy[rank_col], errors='coerce')
+                    top_3 = df_copy.nsmallest(3, rank_col)
+                    
+                    st.markdown(f"**{round_name}:**")
+                    for _, athlete in top_3.iterrows():
+                        name = athlete.get(name_col, "Unknown")
+                        rank = athlete.get(rank_col, "N/A")
+                        medal = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉"
+                        st.write(f"{medal} {name}")
+    
+    with highlights_cols[1]:
+        st.markdown("#### 🧗 Lead Leaders")
+        # Get lead final results
+        for round_name in ["Male Lead Final", "Female Lead Final"]:
+            if round_name in all_data:
+                df = all_data[round_name]
+                cols_mapping = get_column_mapping(round_name)
+                name_col = cols_mapping.get('name', 'Name')
+                rank_col = cols_mapping.get('rank', 'Current Rank')
+                
+                if name_col in df.columns and rank_col in df.columns:
+                    # Get top 3
+                    df_copy = df.copy()
+                    df_copy[rank_col] = pd.to_numeric(df_copy[rank_col], errors='coerce')
+                    top_3 = df_copy.nsmallest(3, rank_col)
+                    
+                    st.markdown(f"**{round_name}:**")
+                    for _, athlete in top_3.iterrows():
+                        name = athlete.get(name_col, "Unknown")
+                        rank = athlete.get(rank_col, "N/A")
+                        medal = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉"
+                        st.write(f"{medal} {name}")
+
+def main():
+    """Main application function"""
+    setup_page()
+    
+    # Header
+    st.markdown("""
+    <div class="main-header">
+        🧗‍♀️ IFSC 2025 Seoul World Championships
+        <div style="font-size: 1rem; margin-top: 0.5rem; color: #7f8c8d;">
+            Live Results & Athlete Tracking
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Load all data
+    with st.spinner("🔄 Loading competition data..."):
+        all_data = load_all_data()
+    
+    if not all_data:
+        st.error("❌ No data could be loaded. Please check your internet connection.")
+        return
+    
+    # Sidebar
+    with st.sidebar:
+        st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
+        st.markdown("### 🎯 Navigation")
+        
+        app_mode = st.selectbox(
+            "Choose view:",
+            ["Competition Overview", "Round Results", "Athlete Profile", "Live Comparison", "Debug Mode"],
+            help="Select how you want to view the competition data"
+        )
+        
+        if app_mode == "Round Results":
+            selected_round = st.selectbox("Select Round:", list(all_data.keys()))
+        
+        elif app_mode == "Live Comparison":
+            # Get all unique athlete names
+            all_athletes = set()
+            for round_name, df in all_data.items():
+                cols_mapping = get_column_mapping(round_name)
+                name_col = cols_mapping.get('name', 'Name')
+                if name_col in df.columns:
+                    athletes = df[name_col].dropna().astype(str)
+                    all_athletes.update(athletes[athletes != ""].tolist())
+            
+            selected_athletes = st.multiselect(
+                "Select athletes to compare:",
+                sorted(list(all_athletes)),
+                max_selections=5,
+                help="Compare up to 5 athletes across all rounds"
+            )
+        
+        elif app_mode == "Athlete Profile":
+            # Get all unique athlete names
+            all_athletes = set()
+            for round_name, df in all_data.items():
+                cols_mapping = get_column_mapping(round_name)
+                name_col = cols_mapping.get('name', 'Name')
+                if name_col in df.columns:
+                    athletes = df[name_col].dropna().astype(str)
+                    all_athletes.update(athletes[athletes != ""].tolist())
+            
+            selected_athlete = st.selectbox(
+                "Select athlete:",
+                [""] + sorted(list(all_athletes)),
+                help="View detailed performance across all rounds"
+            )
+        
+        elif app_mode == "Debug Mode":
+            selected_round = st.selectbox("Select Round for Debug:", list(all_data.keys()))
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Quick stats
+        st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
+        st.markdown("### 📊 Quick Stats")
+        total_entries = sum(len(df) for df in all_data.values())
+        st.metric("Total Entries", total_entries)
+        st.metric("Active Rounds", len(all_data))
+        
+        # Show last update time
+        st.markdown("### ⏰ Last Updated")
+        st.write(datetime.now().strftime("%H:%M:%S"))
+        if st.button("🔄 Refresh Data"):
+            st.cache_data.clear()
+            st.rerun()
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Main content based on selected mode
+    if app_mode == "Competition Overview":
+        create_competition_overview(all_data)
+    
+    elif app_mode == "Round Results":
+        df = all_data.get(selected_round, pd.DataFrame())
+        
+        if df.empty:
+            st.error(f"❌ No data available for {selected_round}")
+            return
+        
+        # Round header with live indicator
+        st.markdown(f"""
+        <div class="round-header">
+            🏆 {selected_round}
+            <div style="font-size: 1rem; margin-top: 0.5rem; opacity: 0.9;">
+                🔴 LIVE • {len(df)} Athletes
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Display results
+        display_round_results(df, selected_round)
+    
+    elif app_mode == "Athlete Profile":
+        if selected_athlete:
+            athlete_detail_view(all_data, selected_athlete)
+        else:
+            st.info("👆 Please select an athlete from the sidebar to view their complete profile.")
+            
+            # Show random featured athletes
+            st.markdown("### ⭐ Featured Athletes")
+            
+            featured_cols = st.columns(3)
+            featured_count = 0
+            
+            for round_name, df in all_data.items():
+                if featured_count >= 3:
+                    break
+                    
+                cols_mapping = get_column_mapping(round_name)
+                name_col = cols_mapping.get('name', 'Name')
+                
+                if name_col in df.columns:
+                    # Get a random athlete from top 5
+                    top_athletes = df.head(5)
+                    if not top_athletes.empty:
+                        sample_athlete = top_athletes.sample(1).iloc[0]
+                        name = sample_athlete.get(name_col, "Unknown")
+                        
+                        with featured_cols[featured_count]:
+                            if st.button(f"🎯 View {name}", key=f"featured_{featured_count}"):
+                                st.session_state.selected_athlete = name
+                                st.rerun()
+                        
+                        featured_count += 1
+    
+    elif app_mode == "Live Comparison":
+        if selected_athletes:
+            st.markdown(f"""
+            <div class="round-header">
+                ⚔️ Live Athlete Comparison
+                <div style="font-size: 1rem; margin-top: 0.5rem; opacity: 0.9;">
+                    Comparing {len(selected_athletes)} athletes across all rounds
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Create comparison data
+            comparison_data = []
+            detailed_data = []
+            
+            for athlete_name in selected_athletes:
+                athlete_performance = {'Athlete': athlete_name}
+                
+                for round_name, df in all_data.items():
+                    cols_mapping = get_column_mapping(round_name)
+                    name_col = cols_mapping.get('name', 'Name')
+                    rank_col = cols_mapping.get('rank', 'Current Rank')
+                    score_col = cols_mapping.get('score', 'Total Score')
+                    
+                    if name_col in df.columns:
+                        athlete_row = df[df[name_col].str.contains(athlete_name, case=False, na=False)]
+                        if not athlete_row.empty:
+                            data = athlete_row.iloc[0]
+                            rank = data.get(rank_col, None)
+                            score = data.get(score_col, None)
+                            
+                            if pd.notna(rank):
+                                try:
+                                    rank_num = int(float(rank))
+                                    comparison_data.append({
+                                        'Athlete': athlete_name,
+                                        'Round': round_name,
+                                        'Rank': rank_num,
+                                        'Score': score
+                                    })
+                                    athlete_performance[round_name] = f"#{rank_num}"
+                                except:
+                                    athlete_performance[round_name] = "N/A"
+                            else:
+                                athlete_performance[round_name] = "N/A"
+                        else:
+                            athlete_performance[round_name] = "N/A"
+                
+                detailed_data.append(athlete_performance)
+            
+            # Show comparison chart
+            if comparison_data:
+                comparison_df = pd.DataFrame(comparison_data)
+                
+                fig = px.line(
+                    comparison_df, 
+                    x='Round', 
+                    y='Rank', 
+                    color='Athlete',
+                    title='🏆 Rank Progression Across Rounds',
+                    markers=True,
+                    hover_data=['Score']
+                )
+                
+                fig.update_layout(
+                    yaxis=dict(autorange='reversed', title="Rank (lower is better)"),
+                    xaxis=dict(tickangle=45),
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                )
+                
+                fig.update_traces(line=dict(width=3), marker=dict(size=8))
+                st.plotly_chart(fig, use_container_width=True)
+            
+            # Show detailed comparison table
+            st.markdown("### 📊 Detailed Comparison")
+            if detailed_data:
+                detailed_df = pd.DataFrame(detailed_data)
+                st.dataframe(detailed_df, use_container_width=True)
+        
+        else:
+            st.info("👆 Please select athletes from the sidebar to compare their performance.")
+    
+    elif app_mode == "Debug Mode":
+        df = all_data.get(selected_round, pd.DataFrame())
+        
+        st.markdown(f"""
+        <div class="round-header">
+            🔧 Debug Mode: {selected_round}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if df.empty:
+            st.error(f"❌ No data available for {selected_round}")
+            return
+        
+        # Debug information
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("#### 📊 DataFrame Info")
+            st.write(f"**Shape:** {df.shape}")
+            st.write(f"**Columns:** {len(df.columns)}")
+            st.write(f"**Non-empty rows:** {len(df[df.iloc[:, 0].notna()])}")
+            
+            st.markdown("#### 📋 All Columns")
+            for i, col in enumerate(df.columns):
+                non_null = df[col].count()
+                st.write(f"{i+1}. `{col}` ({df[col].dtype}) - {non_null} values")
+        
+        with col2:
+            st.markdown("#### 🎯 Column Mapping")
+            cols_mapping = get_column_mapping(selected_round)
+            
+            for key, value in cols_mapping.items():
+                if isinstance(value, list):
+                    st.write(f"**{key}:** {', '.join(value)}")
+                else:
+                    st.write(f"**{key}:** `{value}`")
+            
+            st.markdown("#### 🔍 Sample Data")
+            st.dataframe(df.head(5))
+        
+        # Show raw data toggle
+        if st.checkbox("Show Full Raw Data"):
+            st.markdown("#### 📋 Complete Dataset")
+            st.dataframe(df)
+
+if __name__ == "__main__":
+    main()
