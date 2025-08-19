@@ -664,7 +664,7 @@ def main():
     
     # Footer
     st.markdown("---")
-    st.markdown(f"Made with ❤️ by Elle ✨ | Updated every 2 seconds | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    st.markdown(f"Made by Elle ✨ | Updated every 2 seconds | {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 if __name__ == "__main__":
     main()
