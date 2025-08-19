@@ -73,12 +73,6 @@ def setup_page():
         background: linear-gradient(90deg, #3498db, #2ecc71);
     }
     
-    .athlete-card:hover {
-        border-color: #3498db;
-        box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
-        transform: translateY(-2px);
-    }
-    
     .rank-badge {
         background: #e74c3c;
         color: white;
@@ -89,6 +83,19 @@ def setup_page():
         display: inline-block;
         margin-right: 1rem;
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    .rank-badge.gold { 
+        background: linear-gradient(135deg, #f1c40f, #f39c12); 
+        color: #2c3e50; 
+    }
+    .rank-badge.silver { 
+        background: linear-gradient(135deg, #bdc3c7, #95a5a6); 
+        color: white; 
+    }
+    .rank-badge.bronze { 
+        background: linear-gradient(135deg, #e67e22, #d35400); 
+        color: white; 
     }
     
     .position-info {
@@ -109,19 +116,6 @@ def setup_page():
         margin: 0.5rem 0;
         text-align: center;
         font-weight: bold;
-    }
-    
-    .gold { 
-        background: linear-gradient(135deg, #f1c40f, #f39c12); 
-        color: #2c3e50; 
-    }
-    .silver { 
-        background: linear-gradient(135deg, #bdc3c7, #95a5a6); 
-        color: white; 
-    }
-    .bronze { 
-        background: linear-gradient(135deg, #e67e22, #d35400); 
-        color: white; 
     }
     
     .boulder-grid {
@@ -223,23 +217,11 @@ def setup_page():
         box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
     
-    .country-flag {
-        font-size: 1.2rem;
-        margin-right: 0.5rem;
-    }
-    
     .athlete-name {
         font-size: 1.3rem;
         font-weight: bold;
         color: #2c3e50;
         margin: 0.5rem 0;
-    }
-    
-    .performance-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin: 1rem 0;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -350,78 +332,62 @@ def get_boulder_status_class(score):
         return "boulder-fail"
 
 def display_boulder_performance(athlete_data, cols_mapping):
-    """Display complete boulder performance with all 4 boulders"""
+    """Display boulder performance using Streamlit components instead of HTML"""
     if 'boulder_cols' not in cols_mapping:
-        return ""
+        return
     
-    boulder_html = '<div class="boulder-grid">'
+    st.markdown("**Boulder Performance:**")
     
-    for i, col in enumerate(cols_mapping['boulder_cols'], 1):
+    # Create 4 columns for the 4 boulders
+    boulder_cols = st.columns(4)
+    
+    for i, col in enumerate(cols_mapping['boulder_cols']):
         score = athlete_data.get(col, 0) if col in athlete_data.index else 0
         formatted_score = format_boulder_score(score)
-        status_class = get_boulder_status_class(score)
         
-        boulder_html += f'''
-        <div class="boulder-score {status_class}">
-            <div style="font-size: 0.9rem; margin-bottom: 0.3rem;">B{i}</div>
-            <div style="font-size: 1.1rem;">{formatted_score}</div>
-        </div>
-        '''
-    
-    boulder_html += '</div>'
-    
-    # Add position information
-    current_pos = athlete_data.get(cols_mapping.get('rank', 'Current Rank'), "N/A")
-    worst_case = athlete_data.get(cols_mapping.get('worst_case', 'Worst Case Finish'), "N/A")
-    
-    boulder_html += f'''
-    <div class="position-info">
-        📍 Current Position: #{current_pos}
-    </div>
-    '''
-    
-    if pd.notna(worst_case) and str(worst_case) != "N/A":
-        boulder_html += f'''
-        <div class="worst-case">
-            ⚠️ Worst Case Finish: #{worst_case}
-        </div>
-        '''
-    
-    return boulder_html
+        # Determine status emoji and color
+        if pd.isna(score) or score == 0:
+            status_emoji = "🔴"
+            status_color = "#e74c3c"
+        else:
+            score_str = str(int(score))
+            if len(score_str) >= 1 and score_str[0] == '1':  # Has top
+                status_emoji = "🟢"
+                status_color = "#2ecc71"
+            elif len(score_str) >= 2 and score_str[1] == '1':  # Has zone
+                status_emoji = "🟡"
+                status_color = "#f1c40f"
+            else:
+                status_emoji = "🔴"
+                status_color = "#e74c3c"
+        
+        with boulder_cols[i]:
+            st.markdown(f"""
+            <div style="
+                background: {status_color};
+                color: white;
+                padding: 0.8rem;
+                border-radius: 10px;
+                text-align: center;
+                font-family: 'Courier New', monospace;
+                font-weight: bold;
+                margin-bottom: 0.5rem;
+            ">
+                <div style="font-size: 0.9rem; margin-bottom: 0.3rem;">B{i+1}</div>
+                <div style="font-size: 1.1rem;">{formatted_score}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
 def display_lead_performance(athlete_data, cols_mapping):
-    """Display lead performance with target holds"""
-    lead_html = ""
-    
-    # Current position and worst case
-    current_pos = athlete_data.get(cols_mapping.get('rank', 'Current Rank'), "N/A")
-    worst_case = athlete_data.get(cols_mapping.get('worst_case', 'Worst Case Finish'), "N/A")
-    
-    lead_html += f'''
-    <div class="position-info">
-        📍 Current Position: #{current_pos}
-    </div>
-    '''
-    
-    if pd.notna(worst_case) and str(worst_case) != "N/A":
-        lead_html += f'''
-        <div class="worst-case">
-            ⚠️ Worst Case Finish: #{worst_case}
-        </div>
-        '''
-    
+    """Display lead performance using Streamlit components"""
     # Qualification hold (for semis)
     if 'qualification_hold' in cols_mapping:
         qual_hold = athlete_data.get(cols_mapping['qualification_hold'], "N/A")
         if pd.notna(qual_hold) and str(qual_hold) != "N/A":
-            lead_html += f'''
-            <div class="lead-qualification">
-                🎯 Need for Qualification: Hold {qual_hold}
-            </div>
-            '''
+            st.success(f"🎯 Need for Qualification: Hold {qual_hold}")
     
     # Target holds for positions
-    lead_html += '<div class="lead-targets">'
+    st.markdown("**Target Holds:**")
     
     target_holds = [
         ('hold_for_1st', '🥇 1st Place', '#f1c40f'),
@@ -429,34 +395,41 @@ def display_lead_performance(athlete_data, cols_mapping):
         ('hold_for_3rd', '🥉 3rd Place', '#e67e22')
     ]
     
-    for hold_key, label, color in target_holds:
+    target_cols = st.columns(len(target_holds))
+    
+    for i, (hold_key, label, color) in enumerate(target_holds):
         if hold_key in cols_mapping:
             hold_value = athlete_data.get(cols_mapping[hold_key], "N/A")
             if pd.notna(hold_value) and str(hold_value) != "N/A":
-                lead_html += f'''
-                <div class="lead-target" style="background: {color};">
-                    <div style="font-size: 0.9rem; margin-bottom: 0.3rem;">{label}</div>
-                    <div style="font-size: 1.2rem;">Hold {hold_value}</div>
-                </div>
-                '''
-    
-    lead_html += '</div>'
-    
-    return lead_html
+                with target_cols[i]:
+                    st.markdown(f"""
+                    <div style="
+                        background: {color};
+                        color: white;
+                        padding: 1rem;
+                        border-radius: 10px;
+                        text-align: center;
+                        font-weight: bold;
+                        margin-bottom: 0.5rem;
+                    ">
+                        <div style="font-size: 0.9rem; margin-bottom: 0.3rem;">{label}</div>
+                        <div style="font-size: 1.2rem;">Hold {hold_value}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
 def get_qualification_status(athlete_data, cols_mapping):
     """Determine qualification status"""
     if 'status' in cols_mapping and cols_mapping['status'] in athlete_data.index:
         status = str(athlete_data.get(cols_mapping['status'], "")).lower()
         if 'qualified' in status or 'podium' in status:
-            return '<span class="qualification-status qualified">✅ Qualified</span>'
+            return "✅ Qualified", "#2ecc71"
         elif 'eliminated' in status:
-            return '<span class="qualification-status eliminated">❌ Eliminated</span>'
+            return "❌ Eliminated", "#e74c3c"
     
-    return ""
+    return "", ""
 
 def display_athlete_card(athlete_data, rank, cols_mapping, round_name):
-    """Display an enhanced athlete card with complete performance data"""
+    """Display an enhanced athlete card using Streamlit components"""
     name = athlete_data.get(cols_mapping.get('name', 'Name'), "Unknown")
     score = athlete_data.get(cols_mapping.get('score', 'Total Score'), "N/A")
     
@@ -470,41 +443,72 @@ def display_athlete_card(athlete_data, rank, cols_mapping, round_name):
             rank_display = str(rank)
     
     # Determine rank badge color
-    badge_class = "rank-badge"
     if rank_display == 1:
-        badge_class += " gold"
+        rank_color = "#f1c40f"
+        rank_text_color = "#2c3e50"
     elif rank_display == 2:
-        badge_class += " silver"
+        rank_color = "#bdc3c7"
+        rank_text_color = "white"
     elif rank_display == 3:
-        badge_class += " bronze"
+        rank_color = "#e67e22"
+        rank_text_color = "white"
+    else:
+        rank_color = "#e74c3c"
+        rank_text_color = "white"
     
     # Get qualification status
-    qual_status = get_qualification_status(athlete_data, cols_mapping)
+    qual_status, qual_color = get_qualification_status(athlete_data, cols_mapping)
     
-    # Create the card HTML
-    card_html = f"""
-    <div class="athlete-card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <div>
-                <span class="{badge_class}">#{rank_display}</span>
-                <span class="athlete-name">{name}</span>
-                {qual_status}
-            </div>
-            <div style="font-size: 1.2rem; color: #7f8c8d;">
-                <strong>Score: {score}</strong>
+    # Use container with custom styling
+    with st.container():
+        st.markdown(f"""
+        <div style="
+            background: white;
+            border: 2px solid #ecf0f1;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-top: 4px solid #3498db;
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <div>
+                    <span style="
+                        background: {rank_color};
+                        color: {rank_text_color};
+                        padding: 0.5rem 1rem;
+                        border-radius: 25px;
+                        font-weight: bold;
+                        font-size: 1.1rem;
+                        margin-right: 1rem;
+                    ">#{rank_display}</span>
+                    <span style="font-size: 1.3rem; font-weight: bold; color: #2c3e50;">{name}</span>
+                    {f'<span style="background: {qual_color}; color: white; padding: 0.3rem 0.8rem; border-radius: 15px; font-weight: bold; font-size: 0.9rem; margin-left: 1rem;">{qual_status}</span>' if qual_status else ''}
+                </div>
+                <div style="font-size: 1.2rem; color: #7f8c8d;">
+                    <strong>Score: {score}</strong>
+                </div>
             </div>
         </div>
-    """
-    
-    # Add performance data based on round type
-    if "Boulder" in round_name:
-        card_html += display_boulder_performance(athlete_data, cols_mapping)
-    elif "Lead" in round_name:
-        card_html += display_lead_performance(athlete_data, cols_mapping)
-    
-    card_html += "</div>"
-    
-    st.markdown(card_html, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+        
+        # Position information
+        current_pos = athlete_data.get(cols_mapping.get('rank', 'Current Rank'), "N/A")
+        worst_case = athlete_data.get(cols_mapping.get('worst_case', 'Worst Case Finish'), "N/A")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"📍 Current Position: #{current_pos}")
+        
+        if pd.notna(worst_case) and str(worst_case) != "N/A":
+            with col2:
+                st.warning(f"⚠️ Worst Case Finish: #{worst_case}")
+        
+        # Add performance data based on round type
+        if "Boulder" in round_name:
+            display_boulder_performance(athlete_data, cols_mapping)
+        elif "Lead" in round_name:
+            display_lead_performance(athlete_data, cols_mapping)
 
 def create_athlete_progression_chart(all_data, athlete_name):
     """Create a chart showing athlete's progression through competition"""
