@@ -91,6 +91,26 @@ def setup_page():
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     }
     
+    .position-info {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+        text-align: center;
+        font-weight: bold;
+    }
+    
+    .worst-case {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        color: white;
+        padding: 0.8rem;
+        border-radius: 10px;
+        margin: 0.5rem 0;
+        text-align: center;
+        font-weight: bold;
+    }
+    
     .gold { 
         background: linear-gradient(135deg, #f1c40f, #f39c12); 
         color: #2c3e50; 
@@ -106,7 +126,7 @@ def setup_page():
     
     .boulder-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        grid-template-columns: repeat(4, 1fr);
         gap: 0.5rem;
         margin: 1rem 0;
     }
@@ -140,13 +160,28 @@ def setup_page():
         color: white;
     }
     
-    .lead-score {
+    .lead-targets {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 1rem 0;
+    }
+    
+    .lead-target {
         background: linear-gradient(135deg, #9b59b6, #8e44ad);
         color: white;
         padding: 1rem;
         border-radius: 10px;
         text-align: center;
-        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    
+    .lead-qualification {
+        background: linear-gradient(135deg, #27ae60, #229954);
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        text-align: center;
         font-weight: bold;
         margin: 0.5rem 0;
     }
@@ -248,6 +283,7 @@ def get_column_mapping(round_name):
             'name': 'Athlete Name',
             'rank': 'Current Position',
             'score': 'Total Score',
+            'worst_case': 'Worst Case Finish',
             'boulder_cols': ['Boulder 1 Score', 'Boulder 2 Score', 'Boulder 3 Score', 'Boulder 4 Score'],
             'strategy_cols': ['1st Place Strategy', '2nd Place Strategy', '3rd Place Strategy']
         }
@@ -257,17 +293,32 @@ def get_column_mapping(round_name):
             'rank': 'Current Rank',
             'score': 'Manual Score',
             'status': 'Status',
+            'worst_case': 'Worst Case Finish',
             'boulder_cols': ['Boulder 1 Score', 'Boulder 2 Score', 'Boulder 3 Score', 'Boulder 4 Score'],
             'points_cols': ['Points to 1st', 'Points to 2nd', 'Points to 3rd']
         }
-    elif "Lead Semis" in round_name or "Lead Final" in round_name:
+    elif "Lead Semis" in round_name:
         return {
             'name': 'Name',
             'rank': 'Current Rank', 
             'score': 'Manual Score',
             'status': 'Status',
-            'height_cols': ['Hold for 1st', 'Hold for 2nd', 'Hold for 3rd'],
-            'points_cols': ['Points to 1st', 'Points to 2nd', 'Points to 3rd']
+            'worst_case': 'Worst Case Finish',
+            'qualification_hold': 'Min to Qualify',
+            'hold_for_1st': 'Hold for 1st',
+            'hold_for_2nd': 'Hold for 2nd',
+            'hold_for_3rd': 'Hold for 3rd'
+        }
+    elif "Lead Final" in round_name:
+        return {
+            'name': 'Name',
+            'rank': 'Current Rank', 
+            'score': 'Manual Score',
+            'status': 'Status',
+            'worst_case': 'Worst Case Finish',
+            'hold_for_1st': 'Hold for 1st',
+            'hold_for_2nd': 'Hold for 2nd',
+            'hold_for_3rd': 'Hold for 3rd'
         }
     
     return {}
@@ -299,47 +350,99 @@ def get_boulder_status_class(score):
         return "boulder-fail"
 
 def display_boulder_performance(athlete_data, cols_mapping):
-    """Display boulder performance in a grid"""
+    """Display complete boulder performance with all 4 boulders"""
     if 'boulder_cols' not in cols_mapping:
         return ""
     
     boulder_html = '<div class="boulder-grid">'
     
     for i, col in enumerate(cols_mapping['boulder_cols'], 1):
-        if col in athlete_data.index:
-            score = athlete_data.get(col, 0)
-            formatted_score = format_boulder_score(score)
-            status_class = get_boulder_status_class(score)
-            
-            boulder_html += f'''
-            <div class="boulder-score {status_class}">
-                <div style="font-size: 0.9rem; margin-bottom: 0.3rem;">Boulder {i}</div>
-                <div style="font-size: 1.1rem;">{formatted_score}</div>
-            </div>
-            '''
+        score = athlete_data.get(col, 0) if col in athlete_data.index else 0
+        formatted_score = format_boulder_score(score)
+        status_class = get_boulder_status_class(score)
+        
+        boulder_html += f'''
+        <div class="boulder-score {status_class}">
+            <div style="font-size: 0.9rem; margin-bottom: 0.3rem;">B{i}</div>
+            <div style="font-size: 1.1rem;">{formatted_score}</div>
+        </div>
+        '''
     
     boulder_html += '</div>'
+    
+    # Add position information
+    current_pos = athlete_data.get(cols_mapping.get('rank', 'Current Rank'), "N/A")
+    worst_case = athlete_data.get(cols_mapping.get('worst_case', 'Worst Case Finish'), "N/A")
+    
+    boulder_html += f'''
+    <div class="position-info">
+        📍 Current Position: #{current_pos}
+    </div>
+    '''
+    
+    if pd.notna(worst_case) and str(worst_case) != "N/A":
+        boulder_html += f'''
+        <div class="worst-case">
+            ⚠️ Worst Case Finish: #{worst_case}
+        </div>
+        '''
+    
     return boulder_html
 
 def display_lead_performance(athlete_data, cols_mapping):
-    """Display lead performance"""
-    if 'height_cols' not in cols_mapping:
-        return ""
+    """Display lead performance with target holds"""
+    lead_html = ""
     
-    # Try to find the actual height/hold column
-    height_value = "N/A"
-    for col in athlete_data.index:
-        if any(keyword in col.lower() for keyword in ['hold', 'height', 'min to']):
-            value = athlete_data.get(col, "N/A")
-            if pd.notna(value) and str(value) != "N/A":
-                height_value = value
-                break
+    # Current position and worst case
+    current_pos = athlete_data.get(cols_mapping.get('rank', 'Current Rank'), "N/A")
+    worst_case = athlete_data.get(cols_mapping.get('worst_case', 'Worst Case Finish'), "N/A")
     
-    return f'''
-    <div class="lead-score">
-        📏 Height/Hold: {height_value}
+    lead_html += f'''
+    <div class="position-info">
+        📍 Current Position: #{current_pos}
     </div>
     '''
+    
+    if pd.notna(worst_case) and str(worst_case) != "N/A":
+        lead_html += f'''
+        <div class="worst-case">
+            ⚠️ Worst Case Finish: #{worst_case}
+        </div>
+        '''
+    
+    # Qualification hold (for semis)
+    if 'qualification_hold' in cols_mapping:
+        qual_hold = athlete_data.get(cols_mapping['qualification_hold'], "N/A")
+        if pd.notna(qual_hold) and str(qual_hold) != "N/A":
+            lead_html += f'''
+            <div class="lead-qualification">
+                🎯 Need for Qualification: Hold {qual_hold}
+            </div>
+            '''
+    
+    # Target holds for positions
+    lead_html += '<div class="lead-targets">'
+    
+    target_holds = [
+        ('hold_for_1st', '🥇 1st Place', '#f1c40f'),
+        ('hold_for_2nd', '🥈 2nd Place', '#bdc3c7'), 
+        ('hold_for_3rd', '🥉 3rd Place', '#e67e22')
+    ]
+    
+    for hold_key, label, color in target_holds:
+        if hold_key in cols_mapping:
+            hold_value = athlete_data.get(cols_mapping[hold_key], "N/A")
+            if pd.notna(hold_value) and str(hold_value) != "N/A":
+                lead_html += f'''
+                <div class="lead-target" style="background: {color};">
+                    <div style="font-size: 0.9rem; margin-bottom: 0.3rem;">{label}</div>
+                    <div style="font-size: 1.2rem;">Hold {hold_value}</div>
+                </div>
+                '''
+    
+    lead_html += '</div>'
+    
+    return lead_html
 
 def get_qualification_status(athlete_data, cols_mapping):
     """Determine qualification status"""
@@ -353,7 +456,7 @@ def get_qualification_status(athlete_data, cols_mapping):
     return ""
 
 def display_athlete_card(athlete_data, rank, cols_mapping, round_name):
-    """Display an enhanced athlete card with proper data mapping"""
+    """Display an enhanced athlete card with complete performance data"""
     name = athlete_data.get(cols_mapping.get('name', 'Name'), "Unknown")
     score = athlete_data.get(cols_mapping.get('score', 'Total Score'), "N/A")
     
@@ -388,7 +491,7 @@ def display_athlete_card(athlete_data, rank, cols_mapping, round_name):
                 {qual_status}
             </div>
             <div style="font-size: 1.2rem; color: #7f8c8d;">
-                <strong>{score}</strong>
+                <strong>Score: {score}</strong>
             </div>
         </div>
     """
@@ -398,20 +501,6 @@ def display_athlete_card(athlete_data, rank, cols_mapping, round_name):
         card_html += display_boulder_performance(athlete_data, cols_mapping)
     elif "Lead" in round_name:
         card_html += display_lead_performance(athlete_data, cols_mapping)
-    
-    # Add strategy information for semis
-    if "Semis" in round_name and 'strategy_cols' in cols_mapping:
-        strategy_html = '<div style="margin-top: 1rem; font-size: 0.9rem; color: #7f8c8d;">'
-        strategy_html += '<strong>Strategies:</strong><br>'
-        
-        for i, col in enumerate(cols_mapping['strategy_cols'], 1):
-            if col in athlete_data.index:
-                strategy = athlete_data.get(col, "N/A")
-                if pd.notna(strategy) and str(strategy) != "N/A":
-                    strategy_html += f'🥇 {i}{"st" if i==1 else "nd" if i==2 else "rd"}: {strategy}<br>'
-        
-        strategy_html += '</div>'
-        card_html += strategy_html
     
     card_html += "</div>"
     
@@ -520,14 +609,17 @@ def athlete_detail_view(all_data, athlete_name):
             
             rank = data.get(mapping.get('rank', 'Current Rank'), "N/A")
             score = data.get(mapping.get('score', 'Total Score'), "N/A")
+            worst_case = data.get(mapping.get('worst_case', 'Worst Case Finish'), "N/A")
             
             st.markdown(f"**🏆 {round_name}**")
             
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric("Rank", rank)
+                st.metric("Current Rank", rank)
             with col2:
                 st.metric("Score", score)
+            with col3:
+                st.metric("Worst Case", worst_case)
             
             # Show specific performance data
             if "Boulder" in round_name:
@@ -541,18 +633,25 @@ def athlete_detail_view(all_data, athlete_name):
                             st.write(f"{status} B{j}: {formatted}")
             
             elif "Lead" in round_name:
-                st.markdown("**Lead Performance:**")
-                # Find height/hold data
-                for col in data.index:
-                    if any(keyword in col.lower() for keyword in ['hold', 'height', 'min to']):
-                        value = data.get(col, "N/A")
-                        if pd.notna(value) and str(value) != "N/A":
-                            st.write(f"📏 {col}: {value}")
+                st.markdown("**Lead Targets:**")
+                # Show target holds
+                target_holds = [
+                    ('qualification_hold', '🎯 Qualification'),
+                    ('hold_for_1st', '🥇 1st Place'),
+                    ('hold_for_2nd', '🥈 2nd Place'),
+                    ('hold_for_3rd', '🥉 3rd Place')
+                ]
+                
+                for hold_key, label in target_holds:
+                    if hold_key in mapping and mapping[hold_key] in data.index:
+                        hold_value = data.get(mapping[hold_key], "N/A")
+                        if pd.notna(hold_value) and str(hold_value) != "N/A":
+                            st.write(f"{label}: Hold {hold_value}")
             
             st.markdown("---")
 
 def display_round_results(df, round_name):
-    """Display results for a specific round"""
+    """Display results for a specific round with enhanced information"""
     cols_mapping = get_column_mapping(round_name)
     
     if not cols_mapping:
@@ -618,381 +717,4 @@ def create_competition_overview(all_data):
             <h3>👥 Total Athletes</h3>
             <h2>{}</h2>
         </div>
-        """.format(total_athletes), unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class="metric-card">
-            <h3>🪨 Boulder Entries</h3>
-            <h2>{}</h2>
-        </div>
-        """.format(boulder_athletes), unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown("""
-        <div class="metric-card">
-            <h3>🧗 Lead Entries</h3>
-            <h2>{}</h2>
-        </div>
-        """.format(lead_athletes), unsafe_allow_html=True)
-    
-    with col4:
-        st.markdown("""
-        <div class="metric-card">
-            <h3>🏅 Rounds</h3>
-            <h2>{}</h2>
-        </div>
-        """.format(len(all_data)), unsafe_allow_html=True)
-    
-    # Competition structure visualization
-    st.markdown("### 📋 Competition Structure")
-    
-    structure_data = []
-    for round_name, df in all_data.items():
-        structure_data.append({
-            'Round': round_name,
-            'Athletes': len(df[df.iloc[:, 0].notna()]),
-            'Gender': 'Male' if 'Male' in round_name else 'Female',
-            'Discipline': 'Boulder' if 'Boulder' in round_name else 'Lead',
-            'Stage': 'Semifinals' if 'Semis' in round_name else 'Final'
-        })
-    
-    structure_df = pd.DataFrame(structure_data)
-    
-    fig = px.sunburst(
-        structure_df,
-        path=['Discipline', 'Gender', 'Stage'],
-        values='Athletes',
-        title="Competition Structure by Discipline, Gender, and Stage"
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
-
-def main():
-    """Main application function"""
-    setup_page()
-    
-    # Header
-    st.markdown("""
-    <div class="main-header">
-        🧗‍♀️ IFSC 2025 Seoul World Championships
-        <div style="font-size: 1rem; margin-top: 0.5rem; color: #7f8c8d;">
-            Live Results & Athlete Tracking
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Load all data
-    with st.spinner("🔄 Loading competition data..."):
-        all_data = load_all_data()
-    
-    if not all_data:
-        st.error("❌ No data could be loaded. Please check your internet connection.")
-        return
-    
-    # Sidebar
-    with st.sidebar:
-        st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
-        st.markdown("### 🎯 Navigation")
-        
-        app_mode = st.selectbox(
-            "Choose view:",
-            ["Competition Overview", "Round Results", "Athlete Profile", "Live Comparison", "Debug Mode"],
-            help="Select how you want to view the competition data"
-        )
-        
-        if app_mode == "Round Results":
-            selected_round = st.selectbox("Select Round:", list(all_data.keys()))
-        
-        elif app_mode == "Live Comparison":
-            # Get all unique athlete names
-            all_athletes = set()
-            for round_name, df in all_data.items():
-                cols_mapping = get_column_mapping(round_name)
-                name_col = cols_mapping.get('name', 'Name')
-                if name_col in df.columns:
-                    athletes = df[name_col].dropna().astype(str)
-                    all_athletes.update(athletes[athletes != ""].tolist())
-            
-            selected_athletes = st.multiselect(
-                "Select athletes to compare:",
-                sorted(list(all_athletes)),
-                max_selections=5,
-                help="Compare up to 5 athletes across all rounds"
-            )
-        
-        elif app_mode == "Athlete Profile":
-            # Get all unique athlete names
-            all_athletes = set()
-            for round_name, df in all_data.items():
-                cols_mapping = get_column_mapping(round_name)
-                name_col = cols_mapping.get('name', 'Name')
-                if name_col in df.columns:
-                    athletes = df[name_col].dropna().astype(str)
-                    all_athletes.update(athletes[athletes != ""].tolist())
-            
-            selected_athlete = st.selectbox(
-                "Select athlete:",
-                [""] + sorted(list(all_athletes)),
-                help="View detailed performance across all rounds"
-            )
-        
-        elif app_mode == "Debug Mode":
-            selected_round = st.selectbox("Select Round for Debug:", list(all_data.keys()))
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Quick stats
-        st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
-        st.markdown("### 📊 Quick Stats")
-        total_entries = sum(len(df) for df in all_data.values())
-        st.metric("Total Entries", total_entries)
-        st.metric("Active Rounds", len(all_data))
-        
-        # Show last update time
-        st.markdown("### ⏰ Last Updated")
-        st.write(datetime.now().strftime("%H:%M:%S"))
-        if st.button("🔄 Refresh Data"):
-            st.cache_data.clear()
-            st.rerun()
-        
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Main content based on selected mode
-    if app_mode == "Competition Overview":
-        create_competition_overview(all_data)
-        
-        # Show recent highlights
-        st.markdown("### 🔥 Recent Highlights")
-        
-        highlights_cols = st.columns(2)
-        
-        with highlights_cols[0]:
-            st.markdown("#### 🪨 Boulder Leaders")
-            # Get boulder final results
-            for round_name in ["Male Boulder Final", "Female Boulder Final"]:
-                if round_name in all_data:
-                    df = all_data[round_name]
-                    cols_mapping = get_column_mapping(round_name)
-                    name_col = cols_mapping.get('name', 'Name')
-                    rank_col = cols_mapping.get('rank', 'Current Rank')
-                    
-                    if name_col in df.columns and rank_col in df.columns:
-                        # Get top 3
-                        df_copy = df.copy()
-                        df_copy[rank_col] = pd.to_numeric(df_copy[rank_col], errors='coerce')
-                        top_3 = df_copy.nsmallest(3, rank_col)
-                        
-                        st.markdown(f"**{round_name}:**")
-                        for _, athlete in top_3.iterrows():
-                            name = athlete.get(name_col, "Unknown")
-                            rank = athlete.get(rank_col, "N/A")
-                            medal = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉"
-                            st.write(f"{medal} {name}")
-        
-        with highlights_cols[1]:
-            st.markdown("#### 🧗 Lead Leaders")
-            # Get lead final results
-            for round_name in ["Male Lead Final", "Female Lead Final"]:
-                if round_name in all_data:
-                    df = all_data[round_name]
-                    cols_mapping = get_column_mapping(round_name)
-                    name_col = cols_mapping.get('name', 'Name')
-                    rank_col = cols_mapping.get('rank', 'Current Rank')
-                    
-                    if name_col in df.columns and rank_col in df.columns:
-                        # Get top 3
-                        df_copy = df.copy()
-                        df_copy[rank_col] = pd.to_numeric(df_copy[rank_col], errors='coerce')
-                        top_3 = df_copy.nsmallest(3, rank_col)
-                        
-                        st.markdown(f"**{round_name}:**")
-                        for _, athlete in top_3.iterrows():
-                            name = athlete.get(name_col, "Unknown")
-                            rank = athlete.get(rank_col, "N/A")
-                            medal = "🥇" if rank == 1 else "🥈" if rank == 2 else "🥉"
-                            st.write(f"{medal} {name}")
-    
-    elif app_mode == "Round Results":
-        df = all_data.get(selected_round, pd.DataFrame())
-        
-        if df.empty:
-            st.error(f"❌ No data available for {selected_round}")
-            return
-        
-        # Round header with live indicator
-        st.markdown(f"""
-        <div class="round-header">
-            🏆 {selected_round}
-            <div style="font-size: 1rem; margin-top: 0.5rem; opacity: 0.9;">
-                🔴 LIVE • {len(df)} Athletes
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Display results
-        display_round_results(df, selected_round)
-    
-    elif app_mode == "Athlete Profile":
-        if selected_athlete:
-            athlete_detail_view(all_data, selected_athlete)
-        else:
-            st.info("👆 Please select an athlete from the sidebar to view their complete profile.")
-            
-            # Show random featured athletes
-            st.markdown("### ⭐ Featured Athletes")
-            
-            featured_cols = st.columns(3)
-            featured_count = 0
-            
-            for round_name, df in all_data.items():
-                if featured_count >= 3:
-                    break
-                    
-                cols_mapping = get_column_mapping(round_name)
-                name_col = cols_mapping.get('name', 'Name')
-                
-                if name_col in df.columns:
-                    # Get a random athlete from top 5
-                    top_athletes = df.head(5)
-                    if not top_athletes.empty:
-                        sample_athlete = top_athletes.sample(1).iloc[0]
-                        name = sample_athlete.get(name_col, "Unknown")
-                        
-                        with featured_cols[featured_count]:
-                            if st.button(f"🎯 View {name}", key=f"featured_{featured_count}"):
-                                st.session_state.selected_athlete = name
-                                st.rerun()
-                        
-                        featured_count += 1
-    
-    elif app_mode == "Live Comparison":
-        if selected_athletes:
-            st.markdown(f"""
-            <div class="round-header">
-                ⚔️ Live Athlete Comparison
-                <div style="font-size: 1rem; margin-top: 0.5rem; opacity: 0.9;">
-                    Comparing {len(selected_athletes)} athletes across all rounds
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Create comparison data
-            comparison_data = []
-            detailed_data = []
-            
-            for athlete_name in selected_athletes:
-                athlete_performance = {'Athlete': athlete_name}
-                
-                for round_name, df in all_data.items():
-                    cols_mapping = get_column_mapping(round_name)
-                    name_col = cols_mapping.get('name', 'Name')
-                    rank_col = cols_mapping.get('rank', 'Current Rank')
-                    score_col = cols_mapping.get('score', 'Total Score')
-                    
-                    if name_col in df.columns:
-                        athlete_row = df[df[name_col].str.contains(athlete_name, case=False, na=False)]
-                        if not athlete_row.empty:
-                            data = athlete_row.iloc[0]
-                            rank = data.get(rank_col, None)
-                            score = data.get(score_col, None)
-                            
-                            if pd.notna(rank):
-                                try:
-                                    rank_num = int(float(rank))
-                                    comparison_data.append({
-                                        'Athlete': athlete_name,
-                                        'Round': round_name,
-                                        'Rank': rank_num,
-                                        'Score': score
-                                    })
-                                    athlete_performance[round_name] = f"#{rank_num}"
-                                except:
-                                    athlete_performance[round_name] = "N/A"
-                            else:
-                                athlete_performance[round_name] = "N/A"
-                        else:
-                            athlete_performance[round_name] = "N/A"
-                
-                detailed_data.append(athlete_performance)
-            
-            # Show comparison chart
-            if comparison_data:
-                comparison_df = pd.DataFrame(comparison_data)
-                
-                fig = px.line(
-                    comparison_df, 
-                    x='Round', 
-                    y='Rank', 
-                    color='Athlete',
-                    title='🏆 Rank Progression Across Rounds',
-                    markers=True,
-                    hover_data=['Score']
-                )
-                
-                fig.update_layout(
-                    yaxis=dict(autorange='reversed', title="Rank (lower is better)"),
-                    xaxis=dict(tickangle=45),
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                )
-                
-                fig.update_traces(line=dict(width=3), marker=dict(size=8))
-                st.plotly_chart(fig, use_container_width=True)
-            
-            # Show detailed comparison table
-            st.markdown("### 📊 Detailed Comparison")
-            if detailed_data:
-                detailed_df = pd.DataFrame(detailed_data)
-                st.dataframe(detailed_df, use_container_width=True)
-        
-        else:
-            st.info("👆 Please select athletes from the sidebar to compare their performance.")
-    
-    elif app_mode == "Debug Mode":
-        df = all_data.get(selected_round, pd.DataFrame())
-        
-        st.markdown(f"""
-        <div class="round-header">
-            🔧 Debug Mode: {selected_round}
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if df.empty:
-            st.error(f"❌ No data available for {selected_round}")
-            return
-        
-        # Debug information
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("#### 📊 DataFrame Info")
-            st.write(f"**Shape:** {df.shape}")
-            st.write(f"**Columns:** {len(df.columns)}")
-            st.write(f"**Non-empty rows:** {len(df[df.iloc[:, 0].notna()])}")
-            
-            st.markdown("#### 📋 All Columns")
-            for i, col in enumerate(df.columns):
-                non_null = df[col].count()
-                st.write(f"{i+1}. `{col}` ({df[col].dtype}) - {non_null} values")
-        
-        with col2:
-            st.markdown("#### 🎯 Column Mapping")
-            cols_mapping = get_column_mapping(selected_round)
-            
-            for key, value in cols_mapping.items():
-                if isinstance(value, list):
-                    st.write(f"**{key}:** {', '.join(value)}")
-                else:
-                    st.write(f"**{key}:** `{value}`")
-            
-            st.markdown("#### 🔍 Sample Data")
-            st.dataframe(df.head(5))
-        
-        # Show raw data toggle
-        if st.checkbox("Show Full Raw Data"):
-            st.markdown("#### 📋 Complete Dataset")
-            st.dataframe(df)
-
-if __name__ == "__main__":
-    main()
+        ""
