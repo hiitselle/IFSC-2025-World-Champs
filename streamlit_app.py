@@ -135,7 +135,7 @@ def setup_page():
     </style>
     """, unsafe_allow_html=True)
 
-@st.cache_data(ttl=30)  # Refresh every 30 seconds instead of 5
+@st.cache_data(ttl=2)  # Refresh every 2 seconds
 def load_data(sheets_url):
     """Load data from Google Sheets with caching"""
     try:
@@ -513,11 +513,13 @@ def main():
     # Sidebar setup
     with st.sidebar:
         st.markdown("### 🎯 Competition Selection")
-        selected_round = st.selectbox("Select Round", list(SHEETS_URLS.keys()))
+        selected_round = st.selectbox("Select Round", list(SHEETS_URLS.keys()), key="round_selector")
         
         # Auto-refresh toggle
-        auto_refresh = st.checkbox("Auto-refresh (30s)", value=True)
+        auto_refresh = st.checkbox("Auto-refresh (2s)", value=True)
         if auto_refresh:
+            import time
+            time.sleep(2)
             st.rerun()
     
     # Load and process data
@@ -540,14 +542,6 @@ def main():
     with st.sidebar:
         leaderboard_html = create_compact_leaderboard(df, name_col, rank_col, score_col)
         st.markdown(leaderboard_html, unsafe_allow_html=True)
-        
-        # Competition info
-        st.markdown("""
-        ### 📋 Competition Rules
-        - **Top 8**: Typically qualify for finals
-        - **Boulder**: 4T4Z > 3T4Z > etc.
-        - **Lead**: Highest hold reached
-        """)
     
     # Main content area
     col1, col2 = st.columns([1, 3])
@@ -589,7 +583,7 @@ def main():
     
     # Footer
     st.markdown("---")
-    st.markdown("Made by Elle ✨ | Data updates every 30 seconds")
+    st.markdown("Made by Elle ✨ | Data updates every 2 seconds")
 
 if __name__ == "__main__":
     main()
