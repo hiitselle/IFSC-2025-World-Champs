@@ -18,38 +18,124 @@ SHEETS_URLS = {
 
 def setup_page():
     """Configure Streamlit page settings and styling"""
-    st.set_page_config(page_title="IFSC 2025 World Champs", layout="wide")
+    st.set_page_config(page_title="IFSC 2025 World Champs", layout="wide", initial_sidebar_state="expanded")
     
-    # Auto-refresh every 5 seconds
-    st.markdown("""
-    <script>
-    setTimeout(function(){
-        window.location.reload();
-    }, 5000);
-    </script>
-    """, unsafe_allow_html=True)
-    
-    # Background + styling
+    # Enhanced styling with better colors and spacing
     st.markdown("""
     <style>
-    div[data-testid="stAppViewContainer"] {
-        background-color: #222;
+    /* Main background and text */
+    .stApp {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         color: white;
     }
+    
+    /* Header styling */
+    .main-header {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Card styling */
+    .athlete-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        padding: 20px;
+        margin: 10px 0;
+        color: #333;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Status badges */
+    .status-qualified {
+        background: #d4edda;
+        color: #155724;
+        padding: 5px 12px;
+        border-radius: 20px;
+        border: 2px solid #28a745;
+        font-weight: bold;
+        display: inline-block;
+        margin: 5px 0;
+    }
+    
+    .status-eliminated {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 5px 12px;
+        border-radius: 20px;
+        border: 2px solid #dc3545;
+        font-weight: bold;
+        display: inline-block;
+        margin: 5px 0;
+    }
+    
+    .status-contention {
+        background: #fff3cd;
+        color: #856404;
+        padding: 5px 12px;
+        border-radius: 20px;
+        border: 2px solid #ffc107;
+        font-weight: bold;
+        display: inline-block;
+        margin: 5px 0;
+    }
+    
+    /* Sidebar styling */
+    .css-1d391kg {
+        background: rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Filter section */
+    .filter-section {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Compact leaderboard */
+    .compact-leaderboard {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
+        color: #333;
+    }
+    
+    /* Boulder performance styling */
+    .boulder-performance {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 10px;
+        margin: 5px 0;
+        border-left: 4px solid #007bff;
+    }
+    
+    /* Hide Streamlit elements */
     header[data-testid="stHeader"] {
         display: none;
     }
-    .stSelectbox > div > div > select {
-        background-color: #333;
-        color: white;
+    
+    .stDeployButton {
+        display: none;
     }
-    .stTable {
-        background-color: #333;
+    
+    #MainMenu {
+        visibility: hidden;
+    }
+    
+    footer {
+        visibility: hidden;
     }
     </style>
     """, unsafe_allow_html=True)
 
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=30)  # Refresh every 30 seconds instead of 5
 def load_data(sheets_url):
     """Load data from Google Sheets with caching"""
     try:
@@ -165,31 +251,6 @@ def get_column_names(df):
     
     return name_col, rank_col, score_col
 
-def create_leaderboard(df, name_col, rank_col, score_col):
-    """Create top 10 leaderboard for sidebar"""
-    if df.empty or name_col is None:
-        return pd.DataFrame({"Info": ["No data available"]})
-    
-    leaderboard_df = df.copy()
-    
-    if rank_col and rank_col in leaderboard_df.columns:
-        leaderboard_df[rank_col] = pd.to_numeric(leaderboard_df[rank_col], errors='coerce')
-        leaderboard_df = leaderboard_df.dropna(subset=[rank_col])
-        
-        if not leaderboard_df.empty:
-            leaderboard_df = leaderboard_df.sort_values(by=rank_col)
-            leaderboard_df[rank_col] = leaderboard_df[rank_col].astype(int)
-            
-            # Select only available columns
-            cols_to_show = []
-            if rank_col: cols_to_show.append(rank_col)
-            if name_col: cols_to_show.append(name_col)
-            if score_col and score_col in leaderboard_df.columns: cols_to_show.append(score_col)
-            
-            return leaderboard_df[cols_to_show].head(10)
-    
-    return pd.DataFrame({"Info": ["No ranking data available"]})
-
 def determine_boulder_status(row, rank_col):
     """Determine qualification status for boulder events"""
     if rank_col and rank_col in row:
@@ -215,37 +276,33 @@ def determine_boulder_status(row, rank_col):
     
     return "still in contention" if has_performance else "unknown"
 
-def get_status_styling(status):
-    """Return styling based on athlete status"""
+def get_status_info(status):
+    """Return status information with emoji and styling"""
     status = str(status).strip().lower()
     
     if "qualified" in status and "eliminated" not in status:
         return {
-            'badge': "🟢 Qualified",
-            'bg_color': "#d4edda",
-            'border_color': "#28a745",
-            'text_color': "#155724"
+            'emoji': '🟢',
+            'text': 'Qualified',
+            'class': 'status-qualified'
         }
     elif "eliminated" in status:
         return {
-            'badge': "🔴 Eliminated", 
-            'bg_color': "#f8d7da",
-            'border_color': "#dc3545",
-            'text_color': "#721c24"
+            'emoji': '🔴',
+            'text': 'Eliminated',
+            'class': 'status-eliminated'
         }
     elif "still in contention" in status:
         return {
-            'badge': "🟡 Still in Contention",
-            'bg_color': "#fff3cd",
-            'border_color': "#ffc107", 
-            'text_color': "#856404"
+            'emoji': '🟡',
+            'text': 'Still in Contention',
+            'class': 'status-contention'
         }
     else:
         return {
-            'badge': f"⚪ {status.title() if status else 'Unknown'}",
-            'bg_color': "#f8f9fa",
-            'border_color': "#dee2e6",
-            'text_color': "#495057"
+            'emoji': '⚪',
+            'text': status.title() if status else 'Unknown',
+            'class': 'status-unknown'
         }
 
 def safe_get_value(row, column_name):
@@ -253,176 +310,222 @@ def safe_get_value(row, column_name):
     val = row.get(column_name, '')
     return 'N/A' if pd.isna(val) or val == '' else str(val)
 
-def generate_athlete_card(df, row_index):
-    """Generate athlete card using native Streamlit components"""
-    if row_index >= len(df):
-        st.error("Athlete not found")
-        return
+def create_compact_leaderboard(df, name_col, rank_col, score_col):
+    """Create a more compact and visual leaderboard"""
+    if df.empty or name_col is None:
+        return "No data available"
+    
+    leaderboard_df = df.copy()
+    
+    if rank_col and rank_col in leaderboard_df.columns:
+        leaderboard_df[rank_col] = pd.to_numeric(leaderboard_df[rank_col], errors='coerce')
+        leaderboard_df = leaderboard_df.dropna(subset=[rank_col])
         
-    row = df.iloc[row_index]
-    name_col, rank_col, score_col = get_column_names(df)
+        if not leaderboard_df.empty:
+            leaderboard_df = leaderboard_df.sort_values(by=rank_col)
+            
+            # Create HTML leaderboard
+            html_content = '<div class="compact-leaderboard"><h4>🏆 Top 10 Leaderboard</h4>'
+            
+            for i, (_, row) in enumerate(leaderboard_df.head(10).iterrows()):
+                rank = int(row[rank_col])
+                name = row[name_col]
+                
+                # Determine status
+                status = row.get("Status", "")
+                if not status or pd.isna(status):
+                    status = determine_boulder_status(row, rank_col)
+                
+                status_info = get_status_info(status)
+                
+                # Medal emojis for top 3
+                medal = ""
+                if rank == 1:
+                    medal = "🥇"
+                elif rank == 2:
+                    medal = "🥈"
+                elif rank == 3:
+                    medal = "🥉"
+                
+                html_content += f'''
+                <div style="display: flex; justify-content: space-between; align-items: center; 
+                           padding: 8px; margin: 5px 0; background: rgba(0,0,0,0.1); 
+                           border-radius: 8px;">
+                    <span style="font-weight: bold;">{medal} #{rank} {name}</span>
+                    <span>{status_info['emoji']}</span>
+                </div>
+                '''
+            
+            html_content += '</div>'
+            return html_content
     
-    # Check if we have the basic required columns
-    if name_col is None or name_col not in df.columns:
-        st.error("No athlete name column found in data")
-        return
+    return "No ranking data available"
+
+def create_athlete_filters(df, name_col, rank_col):
+    """Create filtering options for athletes"""
+    st.markdown('<div class="filter-section">', unsafe_allow_html=True)
+    st.subheader("🔍 Filters")
     
-    # Get basic info
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        # Status filter
+        status_options = ["All", "Qualified", "Still in Contention", "Eliminated"]
+        selected_status = st.selectbox("Status", status_options)
+    
+    with col2:
+        # Ranking range filter
+        if rank_col and rank_col in df.columns:
+            max_rank = int(df[rank_col].max()) if df[rank_col].notna().any() else 50
+            rank_range = st.slider("Rank Range", 1, max_rank, (1, max_rank))
+        else:
+            rank_range = None
+    
+    with col3:
+        # Search by name
+        search_term = st.text_input("Search Athlete", placeholder="Enter name...")
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    return selected_status, rank_range, search_term
+
+def filter_athletes(df, name_col, rank_col, selected_status, rank_range, search_term):
+    """Apply filters to the dataframe"""
+    filtered_df = df.copy()
+    
+    # Apply name search
+    if search_term and name_col:
+        filtered_df = filtered_df[filtered_df[name_col].str.contains(search_term, case=False, na=False)]
+    
+    # Apply rank range filter
+    if rank_range and rank_col and rank_col in filtered_df.columns:
+        filtered_df = filtered_df[
+            (filtered_df[rank_col] >= rank_range[0]) & 
+            (filtered_df[rank_col] <= rank_range[1])
+        ]
+    
+    # Apply status filter
+    if selected_status != "All":
+        status_mapping = {
+            "Qualified": "qualified",
+            "Still in Contention": "still in contention", 
+            "Eliminated": "eliminated"
+        }
+        
+        if selected_status in status_mapping:
+            target_status = status_mapping[selected_status]
+            
+            # Filter based on calculated or existing status
+            mask = filtered_df.apply(lambda row: 
+                target_status in str(row.get("Status", "")).lower() or
+                target_status in determine_boulder_status(row, rank_col).lower(),
+                axis=1
+            )
+            filtered_df = filtered_df[mask]
+    
+    return filtered_df
+
+def create_athlete_card_html(row, name_col, rank_col, score_col, df_columns):
+    """Create an HTML athlete card"""
     name = safe_get_value(row, name_col)
     
-    # Handle ranking display
-    rank_display = "-"
-    if rank_col and rank_col in df.columns:
+    # Handle ranking
+    rank_display = "Unranked"
+    if rank_col and rank_col in df_columns:
         rank_val = row.get(rank_col, "")
         if not pd.isna(rank_val) and rank_val != '':
             try:
-                rank_display = str(int(float(rank_val)))
+                rank_display = f"#{int(float(rank_val))}"
             except (ValueError, TypeError):
-                rank_display = str(rank_val)
+                rank_display = f"#{str(rank_val)}"
     
-    # Get status - improve for boulder events
+    # Get status
     status = row.get("Status", "")
-    if not status or pd.isna(status) or str(status).strip() == "":
-        # Try to determine status automatically for boulder events
-        if any('B' in col and col.endswith(('T', 'Z', 'Att')) for col in df.columns):
-            status = determine_boulder_status(row, rank_col)
-        else:
-            status = "unknown"
+    if not status or pd.isna(status):
+        status = determine_boulder_status(row, rank_col)
     
-    styling = get_status_styling(status)
+    status_info = get_status_info(status)
     
-    # Create the card using a more minimal approach
-    with st.container():
-        # Header
-        st.markdown(f"### #{rank_display} {name}")
+    # Boulder performance
+    boulder_html = ""
+    boulder_results = []
+    for i in range(1, 5):
+        top_col = f'B{i}T'
+        zone_col = f'B{i}Z'
+        att_col = f'B{i}Att'
         
-        # Create columns for layout
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            # Score information
-            if score_col and score_col in df.columns:
-                total_score = safe_get_value(row, score_col)
-                if total_score != 'N/A':
-                    st.write(f"**Total Score:** {total_score}")
+        if all(col in df_columns for col in [top_col, zone_col, att_col]):
+            top = int(row.get(top_col, 0)) if pd.notna(row.get(top_col)) else 0
+            zone = int(row.get(zone_col, 0)) if pd.notna(row.get(zone_col)) else 0
+            att = int(row.get(att_col, 0)) if pd.notna(row.get(att_col)) else 0
             
-            # Show boulder ranking summary if available
-            if 'Ranking_Summary' in df.columns:
-                ranking_summary = safe_get_value(row, 'Ranking_Summary')
-                if ranking_summary != 'N/A':
-                    st.write(f"**Boulder Performance:** {ranking_summary}")
-            
-            # Individual boulder results
-            boulder_results = []
-            for i in range(1, 5):
-                top_col = f'B{i}T'
-                zone_col = f'B{i}Z'
-                att_col = f'B{i}Att'
-                
-                if all(col in df.columns for col in [top_col, zone_col, att_col]):
-                    top = int(row.get(top_col, 0)) if pd.notna(row.get(top_col)) else 0
-                    zone = int(row.get(zone_col, 0)) if pd.notna(row.get(zone_col)) else 0
-                    att = int(row.get(att_col, 0)) if pd.notna(row.get(att_col)) else 0
-                    
-                    result = f"B{i}: "
-                    if top > 0:
-                        result += f"{top}T{att}"
-                    elif zone > 0:
-                        result += f"{zone}Z{att}"  
-                    else:
-                        result += f"0 {att}"
-                    boulder_results.append(result)
-            
-            if boulder_results:
-                st.write(f"**Boulder Details:** {' | '.join(boulder_results)}")
-            
-            # Boulder scores if available (fallback)
-            boulder_scores = []
-            for i in range(1, 5):
-                col_name = f'Boulder {i} Score'
-                if col_name in df.columns:
-                    score = safe_get_value(row, col_name)
-                    if score != 'N/A':
-                        boulder_scores.append(score)
-            
-            if boulder_scores and not boulder_results:
-                st.write(f"**Boulder Scores:** {', '.join(boulder_scores)}")
-        
-        with col2:
-            # Points information - check if columns exist first
-            points_mapping = {
-                'Points to 1st': 'Points for 1st Place',
-                'Points to 2nd': 'Points for 2nd Place', 
-                'Points to 3rd': 'Points for 3rd Place'
-            }
-            
-            for primary, secondary in points_mapping.items():
-                if primary in df.columns:
-                    points = safe_get_value(row, primary)
-                elif secondary in df.columns:
-                    points = safe_get_value(row, secondary)
-                else:
-                    continue
-                    
-                if points != 'N/A':
-                    label = primary.replace('Points for', 'Points for')
-                    st.write(f"**{label}:** {points}")
-            
-            # Additional info - check if columns exist
-            if 'Worst Finish' in df.columns:
-                worst_finish = safe_get_value(row, 'Worst Finish')
-                if worst_finish != 'N/A':
-                    st.write(f"**Worst Finish:** {worst_finish}")
-            elif 'Worst Possible Finish' in df.columns:
-                worst_finish = safe_get_value(row, 'Worst Possible Finish')
-                if worst_finish != 'N/A':
-                    st.write(f"**Worst Possible Finish:** {worst_finish}")
-            
-            if 'Min to Qualify' in df.columns:
-                min_to_qualify = safe_get_value(row, 'Min to Qualify')
-                if min_to_qualify != 'N/A':
-                    st.write(f"**Min to Qualify:** {min_to_qualify}")
-            elif 'Points Needed for Top 8' in df.columns:
-                min_to_qualify = safe_get_value(row, 'Points Needed for Top 8')
-                if min_to_qualify != 'N/A':
-                    st.write(f"**Points Needed for Top 8:** {min_to_qualify}")
-        
-        # Status badge
-        st.write(f"**Status:** {styling['badge']}")
-        
-        # Add some spacing
-        st.write("")
-
-def display_competition_info():
-    """Display competition qualification rules"""
-    st.markdown(
-        """
-        <div style="background-color:#f9f9f9; border-radius:15px; padding:20px; color: black;">
-            <h3>Competition Info</h3>
-            <ul>
-                <li>Top 1: Qualified </li>
-                <li>Top 2: Needs Top to Qualify</li>
-                <li>Top 3: Needs Zone (Fewer Tops)</li>
-                <li>Top 4: Needs Zone and Tops</li>
-            </ul>
+            if top > 0:
+                result = f"<span style='color: #28a745; font-weight: bold;'>B{i}: {top}T{att}</span>"
+            elif zone > 0:
+                result = f"<span style='color: #ffc107; font-weight: bold;'>B{i}: {zone}Z{att}</span>"
+            else:
+                result = f"<span style='color: #6c757d;'>B{i}: -{att}</span>"
+            boulder_results.append(result)
+    
+    if boulder_results:
+        boulder_html = f"<div class='boulder-performance'><strong>Boulder Performance:</strong><br>{' | '.join(boulder_results)}</div>"
+    
+    # Score info
+    score_html = ""
+    if score_col and score_col in df_columns:
+        total_score = safe_get_value(row, score_col)
+        if total_score != 'N/A':
+            score_html = f"<div><strong>Total Score:</strong> {total_score}</div>"
+    
+    # Ranking summary for boulder
+    ranking_summary_html = ""
+    if 'Ranking_Summary' in df_columns:
+        ranking_summary = safe_get_value(row, 'Ranking_Summary')
+        if ranking_summary != 'N/A':
+            ranking_summary_html = f"<div><strong>Performance Summary:</strong> {ranking_summary}</div>"
+    
+    card_html = f'''
+    <div class="athlete-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; color: #333;">{rank_display} {name}</h3>
+            <div class="{status_info['class']}">{status_info['emoji']} {status_info['text']}</div>
         </div>
-        """,
-        unsafe_allow_html=True
-    )
+        {score_html}
+        {ranking_summary_html}
+        {boulder_html}
+    </div>
+    '''
+    
+    return card_html
 
 def main():
     """Main application function"""
     setup_page()
     
-    # Sidebar round selector
+    # Header
+    st.markdown('''
+    <div class="main-header">
+        <h1 style="margin: 0; text-align: center;">🏔️ Seoul World Championships 2025</h1>
+        <p style="margin: 5px 0 0 0; text-align: center; opacity: 0.8;">Live Competition Tracking</p>
+    </div>
+    ''', unsafe_allow_html=True)
+    
+    # Sidebar setup
     with st.sidebar:
+        st.markdown("### 🎯 Competition Selection")
         selected_round = st.selectbox("Select Round", list(SHEETS_URLS.keys()))
+        
+        # Auto-refresh toggle
+        auto_refresh = st.checkbox("Auto-refresh (30s)", value=True)
+        if auto_refresh:
+            st.rerun()
     
     # Load and process data
-    df = load_data(SHEETS_URLS[selected_round])
+    with st.spinner("Loading competition data..."):
+        df = load_data(SHEETS_URLS[selected_round])
     
     if df is None or df.empty:
-        st.error("No data loaded for this round.")
+        st.error("❌ No data loaded for this round.")
         st.stop()
     
     df = clean_data(df)
@@ -433,132 +536,60 @@ def main():
     
     name_col, rank_col, score_col = get_column_names(df)
     
-    # Create and display leaderboard in sidebar
-    leaderboard = create_leaderboard(df, name_col, rank_col, score_col)
+    # Display leaderboard in sidebar
     with st.sidebar:
-        st.subheader("Top 10")
-        st.table(leaderboard)
-    
-    # Main page content
-    st.title("🏆 Seoul World Champs 2025")
-    st.subheader(f"📊 {selected_round}")
-    
-    display_competition_info()
-    
-    # Athlete selector section
-    st.title("👟 Athlete Rankings")
-    
-    # Create athlete selector (preserving original order)
-    athletes_display = []
-    if name_col and name_col in df.columns:
-        for index, row in df.iterrows():
-            name = row.get(name_col, '')
-            if pd.notna(name) and str(name).strip() != "":
-                rank_val = row.get(rank_col, "") if rank_col else ""
-                rank_display = "-"
-                if not pd.isna(rank_val) and rank_val != '':
-                    try:
-                        rank_display = str(int(float(rank_val)))
-                    except (ValueError, TypeError):
-                        rank_display = str(rank_val)
-                athletes_display.append(f"{rank_display}. {name}")
+        leaderboard_html = create_compact_leaderboard(df, name_col, rank_col, score_col)
+        st.markdown(leaderboard_html, unsafe_allow_html=True)
         
-        if athletes_display:
-            selected_display = st.selectbox("Select an athlete", athletes_display)
-            if selected_display:
-                selected_name = selected_display.split(". ", 1)[1] if ". " in selected_display else selected_display
-                original_athlete_row = df[df[name_col] == selected_name]
-                
-                if not original_athlete_row.empty:
-                    original_index = original_athlete_row.index[0]
-                    selected_row = original_athlete_row.iloc[0]
-                    
-                    if rank_col:
-                        ranking = pd.to_numeric(selected_row[rank_col], errors='coerce')
-                        if pd.notna(ranking):
-                            st.subheader(f"{selected_row[name_col]} — #{int(ranking)}")
-                        else:
-                            st.subheader(f"{selected_row[name_col]}")
-                    else:
-                        st.subheader(f"{selected_row[name_col]}")
-                    
-                    generate_athlete_card(df, original_index)
+        # Competition info
+        st.markdown("""
+        ### 📋 Competition Rules
+        - **Top 8**: Typically qualify for finals
+        - **Boulder**: 4T4Z > 3T4Z > etc.
+        - **Lead**: Highest hold reached
+        """)
     
-    # All athletes section with expandable cards
-    st.subheader("📋 All Athletes")
+    # Main content area
+    col1, col2 = st.columns([1, 3])
     
-    df_sorted = df.copy()
-    if rank_col and rank_col in df_sorted.columns:
-        df_sorted[rank_col] = pd.to_numeric(df_sorted[rank_col], errors='coerce')
+    with col1:
+        # Filters
+        selected_status, rank_range, search_term = create_athlete_filters(df, name_col, rank_col)
         
-        # Athletes with rankings (sorted)
-        athletes_with_ranking = df_sorted[df_sorted[rank_col].notna()].sort_values(by=rank_col)
-        for original_index, row in athletes_with_ranking.iterrows():
-            name = row[name_col] if name_col else "Unknown"
-            ranking = int(row[rank_col]) if pd.notna(row[rank_col]) else 0
-            status = str(row.get("Status", "")).strip().lower()
-            
-            # Determine status if not explicitly set
-            if not status or status == "":
-                status = determine_boulder_status(row, rank_col)
-            
-            # Status emoji for expander
-            if "qualified" in status and "eliminated" not in status:
-                expander_label = f"🟢 #{ranking} - {name}"
-            elif "eliminated" in status:
-                expander_label = f"🔴 #{ranking} - {name}"
-            elif "still in contention" in status:
-                expander_label = f"🟡 #{ranking} - {name}"
-            else:
-                expander_label = f"#{ranking} - {name}"
-            
-            with st.expander(expander_label):
-                generate_athlete_card(df, original_index)
+        # Stats
+        st.markdown("### 📊 Quick Stats")
+        total_athletes = len(df)
+        qualified_count = len(df[df.apply(lambda row: "qualified" in determine_boulder_status(row, rank_col).lower(), axis=1)])
         
-        # Athletes without rankings
-        athletes_without_ranking = df_sorted[df_sorted[rank_col].isna()]
-        for original_index, row in athletes_without_ranking.iterrows():
-            name = row[name_col] if name_col else "Unknown"
-            if pd.notna(name) and str(name).strip() != "":
-                status = str(row.get("Status", "")).strip().lower()
-                
-                if not status or status == "":
-                    status = determine_boulder_status(row, rank_col)
-                
-                if "qualified" in status and "eliminated" not in status:
-                    expander_label = f"🟢 Unranked - {name}"
-                elif "eliminated" in status:
-                    expander_label = f"🔴 Unranked - {name}"
-                elif "still in contention" in status:
-                    expander_label = f"🟡 Unranked - {name}"
-                else:
-                    expander_label = f"Unranked - {name}"
-                
-                with st.expander(expander_label):
-                    generate_athlete_card(df, original_index)
-    else:
-        # No ranking column available
-        for original_index, row in df_sorted.iterrows():
-            name = row.get(name_col, '') if name_col else 'Unknown'
-            if pd.notna(name) and str(name).strip() != "":
-                status = str(row.get("Status", "")).strip().lower()
-                
-                if not status or status == "":
-                    status = determine_boulder_status(row, rank_col)
-                
-                if "qualified" in status and "eliminated" not in status:
-                    expander_label = f"🟢 {name}"
-                elif "eliminated" in status:
-                    expander_label = f"🔴 {name}"
-                elif "still in contention" in status:
-                    expander_label = f"🟡 {name}"
-                else:
-                    expander_label = f"{name}"
-                
-                with st.expander(expander_label):
-                    generate_athlete_card(df, original_index)
+        st.metric("Total Athletes", total_athletes)
+        st.metric("Qualified", qualified_count)
+        st.metric("Remaining", total_athletes - qualified_count)
     
-    st.write("Made by Elle ✨")
+    with col2:
+        st.markdown(f"### 🏃‍♂️ {selected_round} - Athletes")
+        
+        # Apply filters
+        filtered_df = filter_athletes(df, name_col, rank_col, selected_status, rank_range, search_term)
+        
+        if filtered_df.empty:
+            st.warning("No athletes match the current filters.")
+        else:
+            # Sort for display
+            if rank_col and rank_col in filtered_df.columns:
+                filtered_df = filtered_df.sort_values(by=rank_col)
+            
+            # Display athlete cards in a more compact grid
+            st.markdown(f"Showing {len(filtered_df)} athletes")
+            
+            # Create cards
+            for idx, (_, row) in enumerate(filtered_df.iterrows()):
+                if name_col and pd.notna(row.get(name_col)):
+                    card_html = create_athlete_card_html(row, name_col, rank_col, score_col, filtered_df.columns)
+                    st.markdown(card_html, unsafe_allow_html=True)
+    
+    # Footer
+    st.markdown("---")
+    st.markdown("Made by Elle ✨ | Data updates every 30 seconds")
 
 if __name__ == "__main__":
     main()
