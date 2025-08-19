@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import plotly.express as px
+import plotly.graph_objects as go
 
 # Configuration
 SHEETS_URLS = {
@@ -17,91 +19,131 @@ SHEETS_URLS = {
 def setup_page():
     """Configure Streamlit page settings"""
     st.set_page_config(
-        page_title="IFSC 2025 World Champs - Debug", 
-        layout="wide"
+        page_title="IFSC 2025 Seoul World Championships", 
+        layout="wide",
+        initial_sidebar_state="expanded",
+        page_icon="🧗‍♀️"
     )
+    
+    # Custom CSS for better styling
+    st.markdown("""
+    <style>
+    .main-header {
+        font-size: 3rem;
+        color: #1f4e79;
+        text-align: center;
+        padding: 1rem 0;
+        margin-bottom: 2rem;
+        border-bottom: 3px solid #e74c3c;
+    }
+    
+    .round-header {
+        background: linear-gradient(90deg, #3498db, #2ecc71);
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+        text-align: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    
+    .athlete-card {
+        background: white;
+        border: 2px solid #ecf0f1;
+        border-radius: 10px;
+        padding: 1rem;
+        margin: 0.5rem 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .athlete-card:hover {
+        border-color: #3498db;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    
+    .rank-badge {
+        background: #e74c3c;
+        color: white;
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-weight: bold;
+        display: inline-block;
+        margin-right: 1rem;
+    }
+    
+    .gold { background: #f1c40f; color: #2c3e50; }
+    .silver { background: #95a5a6; color: white; }
+    .bronze { background: #e67e22; color: white; }
+    
+    .boulder-score {
+        background: #f8f9fa;
+        border-radius: 5px;
+        padding: 0.5rem;
+        margin: 0.2rem;
+        display: inline-block;
+        font-family: monospace;
+        border-left: 4px solid #3498db;
+    }
+    
+    .sidebar-section {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
+    
+    .metric-container {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 0.5rem 0;
+        text-align: center;
+    }
+    
+    .comparison-table {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-@st.cache_data(ttl=60)  # Cache for 60 seconds for debugging
+@st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_data(sheets_url):
-    """Load data from Google Sheets with detailed error reporting"""
+    """Load data from Google Sheets with error handling"""
     try:
-        st.write(f"🔄 Attempting to load data from: {sheets_url}")
         df = pd.read_csv(sheets_url)
-        st.success(f"✅ Data loaded successfully! Shape: {df.shape}")
         return df
     except Exception as e:
-        st.error(f"❌ Error loading data: {str(e)}")
-        st.write(f"Error type: {type(e).__name__}")
+        st.error(f"Error loading data: {str(e)}")
         return pd.DataFrame()
 
-def debug_dataframe(df, round_name):
-    """Debug function to inspect the dataframe"""
-    st.subheader(f"🔍 Debug Information for {round_name}")
+@st.cache_data(ttl=300)
+def load_all_data():
+    """Load all competition data"""
+    all_data = {}
+    progress_bar = st.progress(0)
+    status_text = st.empty()
     
-    if df.empty:
-        st.error("❌ DataFrame is empty!")
-        return
+    for i, (round_name, url) in enumerate(SHEETS_URLS.items()):
+        status_text.text(f"Loading {round_name}...")
+        df = load_data(url)
+        if not df.empty:
+            all_data[round_name] = df
+        progress_bar.progress((i + 1) / len(SHEETS_URLS))
     
-    # Basic info
-    st.write(f"**DataFrame Shape:** {df.shape}")
-    st.write(f"**Number of rows:** {len(df)}")
-    st.write(f"**Number of columns:** {len(df.columns)}")
+    status_text.text("Data loading complete!")
+    progress_bar.empty()
+    status_text.empty()
     
-    # Column names
-    st.subheader("📋 Available Columns:")
-    for i, col in enumerate(df.columns):
-        st.write(f"{i+1}. `{col}` (dtype: {df[col].dtype})")
-    
-    # Show first few rows
-    st.subheader("📊 First 5 Rows:")
-    st.dataframe(df.head())
-    
-    # Check for common name columns
-    st.subheader("🔍 Column Detection:")
-    name_candidates = []
-    for col in df.columns:
-        col_lower = col.lower()
-        if any(keyword in col_lower for keyword in ['name', 'athlete', 'climber', 'competitor']):
-            name_candidates.append(col)
-    
-    if name_candidates:
-        st.success(f"✅ Found potential name columns: {name_candidates}")
-    else:
-        st.warning("⚠️ No obvious name columns found")
-    
-    # Check for rank columns
-    rank_candidates = []
-    for col in df.columns:
-        col_lower = col.lower()
-        if any(keyword in col_lower for keyword in ['rank', 'position', 'place']):
-            rank_candidates.append(col)
-    
-    if rank_candidates:
-        st.success(f"✅ Found potential rank columns: {rank_candidates}")
-    else:
-        st.warning("⚠️ No obvious rank columns found")
-    
-    # Check for boulder columns
-    boulder_candidates = []
-    for col in df.columns:
-        if col.startswith('B') and any(col.endswith(suffix) for suffix in ['T', 'Z', 'Att']):
-            boulder_candidates.append(col)
-    
-    if boulder_candidates:
-        st.success(f"✅ Found boulder columns: {boulder_candidates}")
-    else:
-        st.warning("⚠️ No boulder performance columns found")
-    
-    # Show non-null counts
-    st.subheader("📈 Data Completeness:")
-    non_null_counts = df.count()
-    for col in df.columns:
-        percentage = (non_null_counts[col] / len(df)) * 100
-        st.write(f"**{col}**: {non_null_counts[col]}/{len(df)} ({percentage:.1f}% complete)")
+    return all_data
 
 def get_column_names(df):
     """Determine which column names to use based on available columns"""
-    # Name column
     name_col = None
     possible_name_cols = ['Name', 'Athlete Name', 'name', 'athlete_name', 'Athlete', 'Climber']
     for col in possible_name_cols:
@@ -109,14 +151,12 @@ def get_column_names(df):
             name_col = col
             break
     
-    # If no exact match, look for columns containing 'name'
     if name_col is None:
         for col in df.columns:
             if 'name' in col.lower():
                 name_col = col
                 break
     
-    # Rank column
     rank_col = None
     possible_rank_cols = ['Live_Rank', 'Current Rank', 'Current Position', 'Rank', 'Position', 'rank', 'position']
     for col in possible_rank_cols:
@@ -124,7 +164,6 @@ def get_column_names(df):
             rank_col = col
             break
     
-    # Score column
     score_col = None
     possible_score_cols = ['Manual Score', 'Total Score', 'Score', 'score', 'total_score']
     for col in possible_score_cols:
@@ -134,102 +173,395 @@ def get_column_names(df):
     
     return name_col, rank_col, score_col
 
-def simple_athlete_display(df, name_col, rank_col, score_col):
-    """Simple display of athletes for debugging"""
-    if df.empty:
-        st.warning("No data to display")
-        return
+def get_boulder_performance(row, boulder_num):
+    """Extract boulder performance data"""
+    top_col = f'B{boulder_num}T'
+    zone_col = f'B{boulder_num}Z'
+    att_col = f'B{boulder_num}Att'
     
-    st.subheader("👥 Athletes Found:")
+    top = row.get(top_col, 0)
+    zone = row.get(zone_col, 0)
+    att = row.get(att_col, 0)
     
-    if name_col is None:
-        st.error("❌ Could not find a name column")
-        st.write("Available columns:", list(df.columns))
-        return
+    return top, zone, att
+
+def display_athlete_card(athlete_data, rank, name_col, score_col, round_name):
+    """Display an enhanced athlete card"""
+    name = athlete_data.get(name_col, "Unknown")
+    score = athlete_data.get(score_col, "N/A") if score_col else "N/A"
     
-    # Display athletes in a simple format
-    for idx, (_, row) in enumerate(df.iterrows()):
-        name = row.get(name_col, "Unknown")
-        rank = row.get(rank_col, "N/A") if rank_col else "N/A"
-        score = row.get(score_col, "N/A") if score_col else "N/A"
-        
-        st.write(f"**{idx+1}. {name}** - Rank: {rank} - Score: {score}")
-        
-        # Show boulder data if available
-        boulder_info = []
+    # Determine rank badge color
+    badge_class = "rank-badge"
+    if rank == 1:
+        badge_class += " gold"
+    elif rank == 2:
+        badge_class += " silver"
+    elif rank == 3:
+        badge_class += " bronze"
+    
+    # Create the card HTML
+    card_html = f"""
+    <div class="athlete-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div>
+                <span class="{badge_class}">#{rank}</span>
+                <span style="font-size: 1.2rem; font-weight: bold; color: #2c3e50;">{name}</span>
+            </div>
+            <div style="font-size: 1.1rem; color: #7f8c8d;">
+                Score: <strong>{score}</strong>
+            </div>
+        </div>
+    """
+    
+    # Add boulder performance if it's a boulder round
+    if "Boulder" in round_name:
+        boulder_html = "<div style='margin-top: 1rem;'>"
         for i in range(1, 5):
-            top_col = f'B{i}T'
-            zone_col = f'B{i}Z'
-            att_col = f'B{i}Att'
+            top, zone, att = get_boulder_performance(athlete_data, i)
+            status = "🔴"  # Default red
+            if top > 0:
+                status = "🟢"  # Green for top
+            elif zone > 0:
+                status = "🟡"  # Yellow for zone
+                
+            boulder_html += f"""
+            <span class="boulder-score">
+                {status} B{i}: {top}T{zone}Z({att}att)
+            </span>
+            """
+        boulder_html += "</div>"
+        card_html += boulder_html
+    
+    # Add lead performance if it's a lead round
+    elif "Lead" in round_name:
+        height_col = None
+        for col in athlete_data.index:
+            if 'height' in col.lower() or 'hold' in col.lower():
+                height_col = col
+                break
+        
+        if height_col:
+            height = athlete_data.get(height_col, "N/A")
+            card_html += f"""
+            <div style='margin-top: 1rem;'>
+                <span class="boulder-score">
+                    📏 Height: {height}
+                </span>
+            </div>
+            """
+    
+    card_html += "</div>"
+    
+    st.markdown(card_html, unsafe_allow_html=True)
+
+def create_athlete_comparison_chart(all_data, selected_athletes):
+    """Create a comparison chart for selected athletes across rounds"""
+    if not selected_athletes:
+        return None
+    
+    comparison_data = []
+    
+    for athlete_name in selected_athletes:
+        athlete_rounds = {}
+        
+        for round_name, df in all_data.items():
+            name_col, rank_col, score_col = get_column_names(df)
+            if name_col:
+                athlete_row = df[df[name_col].str.contains(athlete_name, case=False, na=False)]
+                if not athlete_row.empty:
+                    rank = athlete_row.iloc[0].get(rank_col, None) if rank_col else None
+                    score = athlete_row.iloc[0].get(score_col, None) if score_col else None
+                    
+                    if rank is not None and str(rank).isdigit():
+                        athlete_rounds[round_name] = int(rank)
+        
+        for round_name, rank in athlete_rounds.items():
+            comparison_data.append({
+                'Athlete': athlete_name,
+                'Round': round_name,
+                'Rank': rank
+            })
+    
+    if comparison_data:
+        comparison_df = pd.DataFrame(comparison_data)
+        
+        fig = px.line(comparison_df, 
+                     x='Round', 
+                     y='Rank', 
+                     color='Athlete',
+                     title='Athlete Performance Comparison Across Rounds',
+                     markers=True)
+        
+        # Invert y-axis so rank 1 is at the top
+        fig.update_layout(yaxis=dict(autorange='reversed'))
+        fig.update_traces(line=dict(width=3), marker=dict(size=8))
+        
+        return fig
+    
+    return None
+
+def athlete_detail_view(all_data, athlete_name):
+    """Show detailed view for a specific athlete"""
+    st.markdown(f"""
+    <div class="round-header">
+        🏆 Detailed Performance: {athlete_name}
+    </div>
+    """, unsafe_allow_html=True)
+    
+    athlete_data = {}
+    
+    for round_name, df in all_data.items():
+        name_col, rank_col, score_col = get_column_names(df)
+        if name_col:
+            athlete_row = df[df[name_col].str.contains(athlete_name, case=False, na=False)]
+            if not athlete_row.empty:
+                athlete_data[round_name] = athlete_row.iloc[0]
+    
+    if not athlete_data:
+        st.warning(f"No data found for athlete: {athlete_name}")
+        return
+    
+    # Create columns for different rounds
+    cols = st.columns(min(len(athlete_data), 4))
+    
+    for i, (round_name, data) in enumerate(athlete_data.items()):
+        with cols[i % 4]:
+            st.markdown(f"**{round_name}**")
+            name_col, rank_col, score_col = get_column_names(pd.DataFrame([data]))
+            rank = data.get(rank_col, "N/A") if rank_col else "N/A"
+            score = data.get(score_col, "N/A") if score_col else "N/A"
             
-            if all(col in df.columns for col in [top_col, zone_col, att_col]):
-                top = row.get(top_col, 0)
-                zone = row.get(zone_col, 0)
-                att = row.get(att_col, 0)
-                boulder_info.append(f"B{i}: {top}T{zone}Z({att}att)")
-        
-        if boulder_info:
-            st.write(f"   └─ {' | '.join(boulder_info)}")
-        
-        if idx >= 9:  # Show first 10 for debugging
-            st.write(f"... and {len(df) - 10} more athletes")
-            break
+            st.metric("Rank", rank)
+            st.metric("Score", score)
+            
+            # Show boulder performance
+            if "Boulder" in round_name:
+                st.markdown("**Boulder Performance:**")
+                for b in range(1, 5):
+                    top, zone, att = get_boulder_performance(data, b)
+                    status = "🟢" if top > 0 else "🟡" if zone > 0 else "🔴"
+                    st.write(f"{status} B{b}: {top}T{zone}Z({att}att)")
 
 def main():
-    """Main debugging function"""
+    """Main application function"""
     setup_page()
     
-    st.title("🔧 Seoul World Championships 2025 - Debug Mode")
-    st.write("This debug version will help identify why athlete data isn't showing.")
+    # Header
+    st.markdown("""
+    <div class="main-header">
+        🧗‍♀️ IFSC 2025 Seoul World Championships
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Load all data
+    with st.spinner("Loading competition data..."):
+        all_data = load_all_data()
+    
+    if not all_data:
+        st.error("No data could be loaded. Please check your internet connection.")
+        return
     
     # Sidebar
     with st.sidebar:
-        st.header("🎯 Select Competition")
-        selected_round = st.selectbox("Round", list(SHEETS_URLS.keys()))
+        st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
+        st.markdown("### 🎯 Navigation")
         
-        st.header("⚙️ Debug Options")
-        show_raw_data = st.checkbox("Show raw DataFrame", False)
-        show_debug_info = st.checkbox("Show debug information", True)
+        app_mode = st.selectbox(
+            "Choose view:",
+            ["Competition Results", "Athlete Comparison", "Athlete Detail", "Statistics", "Debug Mode"]
+        )
+        
+        if app_mode in ["Competition Results", "Debug Mode"]:
+            selected_round = st.selectbox("Select Round:", list(all_data.keys()))
+        
+        if app_mode == "Athlete Comparison":
+            # Get all unique athlete names
+            all_athletes = set()
+            for df in all_data.values():
+                name_col, _, _ = get_column_names(df)
+                if name_col and name_col in df.columns:
+                    all_athletes.update(df[name_col].dropna().tolist())
+            
+            selected_athletes = st.multiselect(
+                "Select athletes to compare:",
+                sorted(list(all_athletes)),
+                max_selections=5
+            )
+        
+        if app_mode == "Athlete Detail":
+            # Get all unique athlete names
+            all_athletes = set()
+            for df in all_data.values():
+                name_col, _, _ = get_column_names(df)
+                if name_col and name_col in df.columns:
+                    all_athletes.update(df[name_col].dropna().tolist())
+            
+            selected_athlete = st.selectbox(
+                "Select athlete:",
+                [""] + sorted(list(all_athletes))
+            )
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Quick stats
+        st.markdown('<div class="sidebar-section">', unsafe_allow_html=True)
+        st.markdown("### 📊 Quick Stats")
+        total_athletes = sum(len(df) for df in all_data.values())
+        st.metric("Total Entries", total_athletes)
+        st.metric("Rounds", len(all_data))
+        st.markdown('</div>', unsafe_allow_html=True)
     
-    # Load data
-    st.header(f"📊 Loading: {selected_round}")
-    df = load_data(SHEETS_URLS[selected_round])
-    
-    # Show raw data if requested
-    if show_raw_data and not df.empty:
-        st.subheader("📋 Raw Data")
-        st.dataframe(df)
-    
-    # Debug information
-    if show_debug_info:
-        debug_dataframe(df, selected_round)
-    
-    # Try to identify columns and show athletes
-    if not df.empty:
+    # Main content
+    if app_mode == "Competition Results":
+        df = all_data.get(selected_round, pd.DataFrame())
+        
+        if df.empty:
+            st.error(f"No data available for {selected_round}")
+            return
+        
+        # Round header
+        st.markdown(f"""
+        <div class="round-header">
+            🏆 {selected_round}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Display athletes
         name_col, rank_col, score_col = get_column_names(df)
         
-        st.subheader("🎯 Column Mapping Results:")
-        st.write(f"**Name Column:** {name_col}")
-        st.write(f"**Rank Column:** {rank_col}")
-        st.write(f"**Score Column:** {score_col}")
+        if name_col is None:
+            st.error("Could not find athlete names in the data")
+            return
         
-        # Simple athlete display
-        simple_athlete_display(df, name_col, rank_col, score_col)
+        # Sort by rank if available
+        if rank_col and rank_col in df.columns:
+            df_sorted = df.sort_values(by=rank_col, na_position='last')
+        else:
+            df_sorted = df
+        
+        # Display in columns
+        cols = st.columns(2)
+        for idx, (_, athlete_data) in enumerate(df_sorted.iterrows()):
+            rank = athlete_data.get(rank_col, idx + 1) if rank_col else idx + 1
+            
+            with cols[idx % 2]:
+                display_athlete_card(athlete_data, rank, name_col, score_col, selected_round)
     
-    # Manual column selection for testing
-    if not df.empty:
-        st.subheader("🔧 Manual Column Selection")
-        st.write("If the automatic detection failed, manually select columns:")
+    elif app_mode == "Athlete Comparison":
+        if selected_athletes:
+            # Create comparison chart
+            fig = create_athlete_comparison_chart(all_data, selected_athletes)
+            
+            if fig:
+                st.plotly_chart(fig, use_container_width=True)
+            
+            # Show detailed comparison table
+            st.markdown("### 📋 Detailed Comparison")
+            
+            comparison_table = []
+            for athlete_name in selected_athletes:
+                row_data = {"Athlete": athlete_name}
+                
+                for round_name, df in all_data.items():
+                    name_col, rank_col, score_col = get_column_names(df)
+                    if name_col:
+                        athlete_row = df[df[name_col].str.contains(athlete_name, case=False, na=False)]
+                        if not athlete_row.empty:
+                            rank = athlete_row.iloc[0].get(rank_col, "N/A") if rank_col else "N/A"
+                            row_data[round_name] = rank
+                        else:
+                            row_data[round_name] = "N/A"
+                
+                comparison_table.append(row_data)
+            
+            if comparison_table:
+                comparison_df = pd.DataFrame(comparison_table)
+                st.dataframe(comparison_df, use_container_width=True)
+        else:
+            st.info("Please select athletes to compare using the sidebar.")
+    
+    elif app_mode == "Athlete Detail":
+        if selected_athlete:
+            athlete_detail_view(all_data, selected_athlete)
+        else:
+            st.info("Please select an athlete using the sidebar.")
+    
+    elif app_mode == "Statistics":
+        st.markdown("""
+        <div class="round-header">
+            📈 Competition Statistics
+        </div>
+        """, unsafe_allow_html=True)
         
-        manual_name_col = st.selectbox("Name Column", ["None"] + list(df.columns))
-        manual_rank_col = st.selectbox("Rank Column", ["None"] + list(df.columns))
+        # Create statistics visualizations
+        col1, col2 = st.columns(2)
         
-        if manual_name_col != "None":
-            st.subheader("Manual Test Results:")
-            for idx, (_, row) in enumerate(df.head(5).iterrows()):
-                name = row.get(manual_name_col, "Unknown")
-                rank = row.get(manual_rank_col, "N/A") if manual_rank_col != "None" else "N/A"
-                st.write(f"{idx+1}. **{name}** (Rank: {rank})")
+        with col1:
+            # Participation by round
+            participation_data = []
+            for round_name, df in all_data.items():
+                participation_data.append({
+                    "Round": round_name,
+                    "Athletes": len(df),
+                    "Gender": "Male" if "Male" in round_name else "Female",
+                    "Discipline": "Boulder" if "Boulder" in round_name else "Lead"
+                })
+            
+            participation_df = pd.DataFrame(participation_data)
+            
+            fig1 = px.bar(participation_df, 
+                         x="Round", 
+                         y="Athletes",
+                         color="Gender",
+                         title="Participation by Round")
+            fig1.update_xaxis(tickangle=45)
+            st.plotly_chart(fig1, use_container_width=True)
+        
+        with col2:
+            # Discipline distribution
+            fig2 = px.pie(participation_df, 
+                         values="Athletes", 
+                         names="Discipline",
+                         title="Athletes by Discipline")
+            st.plotly_chart(fig2, use_container_width=True)
+    
+    elif app_mode == "Debug Mode":
+        df = all_data.get(selected_round, pd.DataFrame())
+        
+        st.markdown(f"""
+        <div class="round-header">
+            🔧 Debug Mode: {selected_round}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if df.empty:
+            st.error(f"No data available for {selected_round}")
+            return
+        
+        # Debug information
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("📊 DataFrame Info")
+            st.write(f"**Shape:** {df.shape}")
+            st.write(f"**Columns:** {len(df.columns)}")
+            st.write(f"**Rows:** {len(df)}")
+            
+            st.subheader("📋 Columns")
+            for i, col in enumerate(df.columns):
+                st.write(f"{i+1}. `{col}` ({df[col].dtype})")
+        
+        with col2:
+            st.subheader("🎯 Column Detection")
+            name_col, rank_col, score_col = get_column_names(df)
+            
+            st.write(f"**Name Column:** `{name_col}`")
+            st.write(f"**Rank Column:** `{rank_col}`")
+            st.write(f"**Score Column:** `{score_col}`")
+            
+            # Show sample data
+            st.subheader("🔍 Sample Data")
+            st.dataframe(df.head(3))
 
 if __name__ == "__main__":
     main()
