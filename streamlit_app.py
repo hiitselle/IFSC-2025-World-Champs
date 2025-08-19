@@ -332,7 +332,7 @@ def get_boulder_status_class(score):
         return "boulder-fail"
 
 def display_boulder_performance(athlete_data, cols_mapping):
-    """Display boulder performance using Streamlit components instead of HTML"""
+    """Display boulder performance using Streamlit components only"""
     if 'boulder_cols' not in cols_mapping:
         return
     
@@ -348,38 +348,38 @@ def display_boulder_performance(athlete_data, cols_mapping):
         # Determine status emoji and color
         if pd.isna(score) or score == 0:
             status_emoji = "🔴"
-            status_color = "#e74c3c"
+            bg_color = "#e74c3c"
         else:
             score_str = str(int(score))
             if len(score_str) >= 1 and score_str[0] == '1':  # Has top
                 status_emoji = "🟢"
-                status_color = "#2ecc71"
+                bg_color = "#2ecc71"
             elif len(score_str) >= 2 and score_str[1] == '1':  # Has zone
                 status_emoji = "🟡"
-                status_color = "#f1c40f"
+                bg_color = "#f1c40f"
             else:
                 status_emoji = "🔴"
-                status_color = "#e74c3c"
+                bg_color = "#e74c3c"
         
         with boulder_cols[i]:
             st.markdown(f"""
             <div style="
-                background: {status_color};
+                background: {bg_color};
                 color: white;
                 padding: 0.8rem;
                 border-radius: 10px;
                 text-align: center;
-                font-family: 'Courier New', monospace;
+                font-family: monospace;
                 font-weight: bold;
                 margin-bottom: 0.5rem;
             ">
-                <div style="font-size: 0.9rem; margin-bottom: 0.3rem;">B{i+1}</div>
+                <div style="font-size: 0.9rem;">B{i+1}</div>
                 <div style="font-size: 1.1rem;">{formatted_score}</div>
             </div>
             """, unsafe_allow_html=True)
 
 def display_lead_performance(athlete_data, cols_mapping):
-    """Display lead performance using Streamlit components"""
+    """Display lead performance using Streamlit components only"""
     # Qualification hold (for semis)
     if 'qualification_hold' in cols_mapping:
         qual_hold = athlete_data.get(cols_mapping['qualification_hold'], "N/A")
@@ -395,27 +395,33 @@ def display_lead_performance(athlete_data, cols_mapping):
         ('hold_for_3rd', '🥉 3rd Place', '#e67e22')
     ]
     
-    target_cols = st.columns(len(target_holds))
-    
-    for i, (hold_key, label, color) in enumerate(target_holds):
+    # Filter to only show holds that have values
+    valid_holds = []
+    for hold_key, label, color in target_holds:
         if hold_key in cols_mapping:
             hold_value = athlete_data.get(cols_mapping[hold_key], "N/A")
             if pd.notna(hold_value) and str(hold_value) != "N/A":
-                with target_cols[i]:
-                    st.markdown(f"""
-                    <div style="
-                        background: {color};
-                        color: white;
-                        padding: 1rem;
-                        border-radius: 10px;
-                        text-align: center;
-                        font-weight: bold;
-                        margin-bottom: 0.5rem;
-                    ">
-                        <div style="font-size: 0.9rem; margin-bottom: 0.3rem;">{label}</div>
-                        <div style="font-size: 1.2rem;">Hold {hold_value}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                valid_holds.append((hold_key, label, color, hold_value))
+    
+    if valid_holds:
+        target_cols = st.columns(len(valid_holds))
+        
+        for i, (hold_key, label, color, hold_value) in enumerate(valid_holds):
+            with target_cols[i]:
+                st.markdown(f"""
+                <div style="
+                    background: {color};
+                    color: white;
+                    padding: 1rem;
+                    border-radius: 10px;
+                    text-align: center;
+                    font-weight: bold;
+                    margin-bottom: 0.5rem;
+                ">
+                    <div style="font-size: 0.9rem;">{label}</div>
+                    <div style="font-size: 1.2rem;">Hold {hold_value}</div>
+                </div>
+                """, unsafe_allow_html=True)
 
 def get_qualification_status(athlete_data, cols_mapping):
     """Determine qualification status"""
@@ -429,7 +435,7 @@ def get_qualification_status(athlete_data, cols_mapping):
     return "", ""
 
 def display_athlete_card(athlete_data, rank, cols_mapping, round_name):
-    """Display an enhanced athlete card using Streamlit components"""
+    """Display an enhanced athlete card using Streamlit components only"""
     name = athlete_data.get(cols_mapping.get('name', 'Name'), "Unknown")
     score = athlete_data.get(cols_mapping.get('score', 'Total Score'), "N/A")
     
@@ -442,67 +448,47 @@ def display_athlete_card(athlete_data, rank, cols_mapping, round_name):
         except:
             rank_display = str(rank)
     
-    # Determine rank badge color
-    if rank_display == 1:
-        rank_color = "#f1c40f"
-        rank_text_color = "#2c3e50"
-    elif rank_display == 2:
-        rank_color = "#bdc3c7"
-        rank_text_color = "white"
-    elif rank_display == 3:
-        rank_color = "#e67e22"
-        rank_text_color = "white"
-    else:
-        rank_color = "#e74c3c"
-        rank_text_color = "white"
-    
     # Get qualification status
     qual_status, qual_color = get_qualification_status(athlete_data, cols_mapping)
     
-    # Use container with custom styling
-    with st.container():
-        st.markdown(f"""
-        <div style="
-            background: white;
-            border: 2px solid #ecf0f1;
-            border-radius: 15px;
-            padding: 1.5rem;
-            margin: 1rem 0;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border-top: 4px solid #3498db;
-        ">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <div>
-                    <span style="
-                        background: {rank_color};
-                        color: {rank_text_color};
-                        padding: 0.5rem 1rem;
-                        border-radius: 25px;
-                        font-weight: bold;
-                        font-size: 1.1rem;
-                        margin-right: 1rem;
-                    ">#{rank_display}</span>
-                    <span style="font-size: 1.3rem; font-weight: bold; color: #2c3e50;">{name}</span>
-                    {f'<span style="background: {qual_color}; color: white; padding: 0.3rem 0.8rem; border-radius: 15px; font-weight: bold; font-size: 0.9rem; margin-left: 1rem;">{qual_status}</span>' if qual_status else ''}
-                </div>
-                <div style="font-size: 1.2rem; color: #7f8c8d;">
-                    <strong>Score: {score}</strong>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    # Use Streamlit container with border
+    with st.container(border=True):
+        # Header row with rank and name
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            # Determine medal emoji
+            if rank_display == 1:
+                medal = "🥇"
+            elif rank_display == 2:
+                medal = "🥈"
+            elif rank_display == 3:
+                medal = "🥉"
+            else:
+                medal = "🏃"
+            
+            st.markdown(f"### {medal} #{rank_display} - {name}")
+            
+            if qual_status:
+                if "Qualified" in qual_status:
+                    st.success(qual_status)
+                else:
+                    st.error(qual_status)
+        
+        with col2:
+            st.metric("Score", score)
         
         # Position information
         current_pos = athlete_data.get(cols_mapping.get('rank', 'Current Rank'), "N/A")
         worst_case = athlete_data.get(cols_mapping.get('worst_case', 'Worst Case Finish'), "N/A")
         
-        col1, col2 = st.columns(2)
-        with col1:
-            st.info(f"📍 Current Position: #{current_pos}")
+        pos_col1, pos_col2 = st.columns(2)
+        with pos_col1:
+            st.info(f"📍 Current: #{current_pos}")
         
         if pd.notna(worst_case) and str(worst_case) != "N/A":
-            with col2:
-                st.warning(f"⚠️ Worst Case Finish: #{worst_case}")
+            with pos_col2:
+                st.warning(f"⚠️ Worst: #{worst_case}")
         
         # Add performance data based on round type
         if "Boulder" in round_name:
